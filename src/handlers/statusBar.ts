@@ -9,6 +9,7 @@ let statusBarItem: vscode.StatusBarItem;
 export function createStatusBarItem(): vscode.StatusBarItem {
     log('[Status Bar] Creating status bar item...');
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    statusBarItem.command = 'cursor-stats.showStats';
     log('[Status Bar] Status bar alignment: Right, Priority: 100');
     return statusBarItem;
 }
@@ -37,29 +38,6 @@ export function formatTooltipLine(text: string, maxWidth: number = 50): string {
     return lines.join('\n   ');
 }
 
-export function getMaxLineWidth(lines: string[]): number {
-    return Math.max(...lines.map(line => line.length));
-}
-
-export function createSeparator(width: number): string {
-    const separatorWidth = Math.floor(width / 2);
-    return '╌'.repeat(separatorWidth + 5);
-}
-
-export function getUsageLimitEmoji(currentCost: number, limit: number): string {
-    const percentage = (currentCost / limit) * 100;
-    if (percentage >= 90) {
-        return '🔴';
-    }
-    if (percentage >= 75) {
-        return '🟡';
-    }
-    if (percentage >= 50) {
-        return '🟢';
-    }
-    return '✅';
-}
-
 export function formatRelativeTime(dateString: string): string {
     const date = new Date(dateString);
     const hours = date.getHours().toString().padStart(2, '0');
@@ -69,126 +47,214 @@ export function formatRelativeTime(dateString: string): string {
     return `${hours}:${minutes}:${seconds}`;
 }
 
-export async function createMarkdownTooltip(lines: string[], isError: boolean = false): Promise<vscode.MarkdownString> {
+interface CursorTooltipData {
+    premiumStats?: {
+        current: number;
+        limit: number;
+        startOfMonth: string;
+        percentage: number;
+    };
+    usageBasedStats?: {
+        isEnabled: boolean;
+        limit?: number;
+        currentCost: number;
+        items: Array<{
+            calculation: string;
+            totalDollars: string;
+        }>;
+        billingPeriod: string;
+        midMonthPayment?: number;
+    };
+    error?: {
+        message: string;
+        details?: string;
+    };
+    lastUpdated: string;
+}
+
+export async function gatherTooltipData(stats: any, token: string | null): Promise<CursorTooltipData> {
+    try {
+        if (!token) {
+            return {
+                error: {
+                    message: 'No Cursor token found',
+                    details: 'Please log in to view statistics'
+                },
+                lastUpdated: new Date().toLocaleString()
+            };
+        }
+
+        const data: CursorTooltipData = {
+            lastUpdated: new Date().toLocaleString()
+        };
+
+        // Get premium stats if available
+        if (stats?.premiumRequests) {
+            const premiumPercent = Math.round((stats.premiumRequests.current / stats.premiumRequests.limit) * 100);
+            data.premiumStats = {
+                current: stats.premiumRequests.current,
+                limit: stats.premiumRequests.limit,
+                startOfMonth: new Date(stats.premiumRequests.startOfMonth).toLocaleDateString(),
+                percentage: premiumPercent
+            };
+        }
+
+        // Get usage based stats if available
+        try {
+            const limitResponse = await getCurrentUsageLimit(token);
+            const totalCost = stats?.lastMonth?.usageBasedPricing?.items?.reduce(
+                (sum: number, item: any) => sum + parseFloat(item.totalDollars.replace('$', '')), 
+                0
+            ) || 0;
+
+            data.usageBasedStats = {
+                isEnabled: !limitResponse.noUsageBasedAllowed,
+                limit: limitResponse.hardLimit,
+                currentCost: totalCost,
+                items: stats?.lastMonth?.usageBasedPricing?.items || [],
+                billingPeriod: new Date().toLocaleDateString(),
+                midMonthPayment: 0 // Add this if you have mid-month payment data
+            };
+        } catch (error: any) {
+            log('[API] Error fetching usage limit: ' + error.message, true);
+        }
+
+        return data;
+    } catch (error: any) {
+        return {
+            error: {
+                message: 'Error gathering tooltip data',
+                details: error.message
+            },
+            lastUpdated: new Date().toLocaleString()
+        };
+    }
+}
+
+const ICONS = {
+    GRAPH: '$(graph)',
+    ZAP: '$(zap)',
+    CALENDAR: '$(calendar)',
+    PULSE: '$(pulse)',
+    CHART: '$(chart-line)',
+    CREDIT_CARD: '$(credit-card)',
+    CHECK: '$(check)',
+    X: '$(x)',
+    INFO: '$(info)',
+    ROCKET: '$(rocket)',
+    LIGHT_BULB: '$(light-bulb)',
+    ARROW: '$(arrow-right)',
+    LOCK: '$(lock)',
+    CIRCLE_SLASH: '$(circle-slash)',
+    PERSON: '$(person)',
+    GEAR: '$(gear)',
+    SYNC: '$(sync)',
+    CLOCK: '$(clock)',
+    ERROR: '$(error)',
+    LIST: '$(list-ordered)'
+} as const;
+
+function createHeader(title: string): string {
+    return `## ${title}\n`;
+}
+
+function createErrorSection(error: { message: string; details?: string }): string {
+    return `### Error
+**Message:** ${error.message}${error.details ? `\n**Details:** ${error.details}` : ''}\n`;
+}
+
+function createPremiumSection(stats: NonNullable<CursorTooltipData['premiumStats']>): string {
+    return `### Premium Fast Requests
+**Billing Period:** ${stats.startOfMonth}  
+**Usage:** ${stats.current} out of ${stats.limit}  
+**Progress:** ${stats.percentage}% utilized\n`;
+}
+
+function createUsageSection(stats: NonNullable<CursorTooltipData['usageBasedStats']>): string {
+    const sections: string[] = [];
+    
+    sections.push(`### Usage-Based Pricing`);
+    
+    if (!stats.isEnabled) {
+        sections.push(`**Status:** Currently disabled\n`);
+        return sections.join('\n');
+    }
+    
+    if (stats.limit) {
+        const usagePercentage = ((stats.currentCost / stats.limit) * 100).toFixed(1);
+        sections.push(
+            `**Billing Period:** ${stats.billingPeriod}  \n` +
+            `**Monthly Limit:** $${stats.limit.toFixed(2)} (${usagePercentage}% used)\n`
+        );
+    }
+    
+    if (stats.items.length > 0) {
+        sections.push(`#### Usage Breakdown`);
+        
+        if (stats.midMonthPayment) {
+            const unpaidAmount = stats.currentCost - stats.midMonthPayment;
+            sections.push(
+                `**Total:** $${stats.currentCost.toFixed(2)}  \n` +
+                `**Unpaid:** $${unpaidAmount.toFixed(2)}\n`
+            );
+        } else {
+            sections.push(`**Total Cost:** $${stats.currentCost.toFixed(2)}\n`);
+        }
+
+        const usageItems = stats.items.map(item => {
+            const modelName = item.calculation.replace('•', '').trim();
+            return `- ${modelName}: ${item.totalDollars}`;
+        }).join('\n');
+        
+        sections.push(usageItems + '\n');
+    } else {
+        sections.push(`**Status:** No usage recorded for this period\n`);
+    }
+
+    return sections.join('\n');
+}
+
+function createFooter(lastUpdated: string): string {
+    return `---
+
+#### Account Management
+- ${ICONS.PERSON} [Account Settings](https://www.cursor.com/settings)
+- ${ICONS.GEAR} [Extension Settings](command:workbench.action.openSettings?%22@ext%3ADwtexe.cursor-stats%22)
+- ${ICONS.LOCK} [Set Usage Limit](command:cursor-stats.setLimit)
+- ${ICONS.SYNC} [Refresh Statistics](command:cursor-stats.refreshStats)
+
+**Last Updated:** ${formatRelativeTime(lastUpdated)}\n`;
+}
+
+export async function createMarkdownTooltip(tooltipData: CursorTooltipData): Promise<vscode.MarkdownString> {
     const tooltip = new vscode.MarkdownString();
     tooltip.isTrusted = true;
     tooltip.supportHtml = true;
     tooltip.supportThemeIcons = true;
 
-    // Header section with centered title
-    tooltip.appendMarkdown('<div align="center">\n\n');
-    tooltip.appendMarkdown('## ⚡ Cursor Usage\n\n');
-    tooltip.appendMarkdown('</div>\n\n');
+    const sections: string[] = [];
 
-    if (isError) {
-        tooltip.appendMarkdown('> ⚠️ **Error State**\n\n');
-        tooltip.appendMarkdown(lines.join('\n\n'));
+    // Header
+    sections.push(createHeader('Cursor Usage Statistics'));
+
+    // Error State or Stats
+    if (tooltipData.error) {
+        sections.push(createErrorSection(tooltipData.error));
     } else {
-        // Premium Requests Section
-        if (lines.some(line => line.includes('Premium Fast Requests'))) {
-            tooltip.appendMarkdown('<div align="center">\n\n');
-            tooltip.appendMarkdown('### 🚀 Premium Fast Requests\n\n');
-            tooltip.appendMarkdown('</div>\n\n');
-            
-            // Extract and format premium request info
-            const requestLine = lines.find(line => line.includes('requests used'));
-            const percentLine = lines.find(line => line.includes('utilized'));
-            const startOfMonthLine = lines.find(line => line.includes('Fast Requests Period:'));
-            
-            if (requestLine) {
-                if (startOfMonthLine) {
-                    tooltip.appendMarkdown(`**Period:** ${startOfMonthLine.split(':')[1].trim()}\n\n`);
-                }
-                tooltip.appendMarkdown(`**Usage:** ${requestLine.split('•')[1].trim()}\n\n`);
-                if (percentLine) {
-                    tooltip.appendMarkdown(`**Progress:** ${percentLine.split('📊')[1].trim()}\n\n`);
-                }
-            }
+        if (tooltipData.premiumStats) {
+            sections.push(createPremiumSection(tooltipData.premiumStats));
         }
 
-        // Usage Based Pricing Section
-        const token = await getCursorTokenFromDB();
-        let isEnabled = false;
-
-        if (token) {
-            try {
-                const limitResponse = await getCurrentUsageLimit(token);
-                isEnabled = !limitResponse.noUsageBasedAllowed;
-                const costLine = lines.find(line => line.includes('Total Cost:'));
-                const totalCost = costLine ? parseFloat(costLine.split('$')[1]) : 0;
-                const usageBasedPeriodLine = lines.find(line => line.includes('Usage Based Period:'));
-
-                tooltip.appendMarkdown('<div align="center">\n\n');
-                tooltip.appendMarkdown(`### 📈 Usage-Based Pricing (${isEnabled ? 'Enabled' : 'Disabled'})\n\n`);
-                tooltip.appendMarkdown('</div>\n\n');
-                
-                if (isEnabled && limitResponse.hardLimit) {
-                    if (usageBasedPeriodLine) {
-                        tooltip.appendMarkdown(`**Period:** ${usageBasedPeriodLine.split(':')[1].trim()}\n\n`);
-                    }
-                    const usagePercentage = ((totalCost / limitResponse.hardLimit) * 100).toFixed(1);
-                    const usageEmoji = getUsageLimitEmoji(totalCost, limitResponse.hardLimit);
-                    tooltip.appendMarkdown(`**Monthly Limit:** $${limitResponse.hardLimit.toFixed(2)} (${usagePercentage}% used) ${usageEmoji}\n\n`);
-                } else if (!isEnabled) {
-                    tooltip.appendMarkdown('> ℹ️ Usage-based pricing is currently disabled\n\n');
-                }
-                
-                // Show usage details regardless of enabled/disabled status
-                const pricingLines = lines.filter(line => line.includes('*') && line.includes('➜'));
-                if (pricingLines.length > 0) {
-                    const costLine = lines.find(line => line.includes('Total Cost:'));
-                    const totalCost = costLine ? costLine.split('Total Cost:')[1].trim() : '';
-                    const midMonthPaymentLine = lines.find(line => line.includes('You have paid') && line.includes('of this cost already'));
-                    const midMonthPayment = midMonthPaymentLine ? 
-                        (midMonthPaymentLine.match(/\$(\d+\.\d+)/) || [])[1] ? 
-                        parseFloat((midMonthPaymentLine.match(/\$(\d+\.\d+)/) || [])[1]) : 0 
-                        : 0;
-                    const unpaidAmount = parseFloat(totalCost.replace('$', '')) - midMonthPayment;
-                    
-                    if (midMonthPayment > 0) {
-                        tooltip.appendMarkdown(`**Current Usage** (Total: $${parseFloat(totalCost.replace('$', '')).toFixed(2)} - Unpaid: $${unpaidAmount.toFixed(2)}):\n\n`);
-                    } else {
-                        tooltip.appendMarkdown(`**Current Usage** (Total: ${totalCost}):\n\n`);
-                    }
-                    
-                    pricingLines.forEach(line => {
-                        const [calc, cost] = line.split('➜').map(part => part.trim());
-                        tooltip.appendMarkdown(`• ${calc.replace('•', '').trim()} → ${cost}\n\n`);
-                    });
-
-                    // Add mid-month payment message if it exists
-                    if (midMonthPaymentLine) {
-                        tooltip.appendMarkdown(`> ${midMonthPaymentLine.trim()}\n\n`);
-                    }
-                } else {
-                    tooltip.appendMarkdown('> ℹ️ No usage recorded for this period\n\n');
-                }
-            } catch (error: any) {
-                log('[API] Error fetching limit for tooltip: ' + error.message, true);
-                tooltip.appendMarkdown('> ⚠️ Error checking usage-based pricing status\n\n');
-            }
-        } else {
-            tooltip.appendMarkdown('> ⚠️ Unable to check usage-based pricing status\n\n');
+        if (tooltipData.usageBasedStats) {
+            sections.push(createUsageSection(tooltipData.usageBasedStats));
         }
     }
 
-    // Action Buttons Section with new compact design
-    tooltip.appendMarkdown('---\n\n');
-    tooltip.appendMarkdown('<div align="center">\n\n');
-    
-    // First row: Account and Extension settings
-    tooltip.appendMarkdown('🌐 [Account Settings](https://www.cursor.com/settings) • ');
-    tooltip.appendMarkdown('⚙️ [Extension Settings](command:workbench.action.openSettings?%22@ext%3ADwtexe.cursor-stats%22)\n\n');
-    
-    // Second row: Usage Based Pricing, Refresh, and Last Updated
-    const updatedLine = lines.find(line => line.includes('Last Updated:'));
-    const updatedTime = updatedLine ? formatRelativeTime(updatedLine.split(':').slice(1).join(':').trim()) : new Date().toLocaleTimeString();
-    
-    tooltip.appendMarkdown('💰 [Usage Based Pricing](command:cursor-stats.setLimit) • ');
-    tooltip.appendMarkdown('🔄 [Refresh](command:cursor-stats.refreshStats) • ');
-    tooltip.appendMarkdown(`🕒 ${updatedTime}\n\n`);
-    
-    tooltip.appendMarkdown('</div>');
+    // Footer
+    sections.push(createFooter(tooltipData.lastUpdated));
+
+    // Join all sections with proper spacing
+    tooltip.appendMarkdown(sections.join('\n'));
 
     return tooltip;
 }
