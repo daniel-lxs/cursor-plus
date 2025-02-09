@@ -107,7 +107,7 @@
                     </div>
                     <div class="stat-row compact">
                         <span>Current Cost</span>
-                        <span>${stats.usage?.currentCost || 0}</span>
+                        <span>${stats.usage?.currentCost.toFixed(2) || 0}</span>
                     </div>
                     <div class="progress-bar">
                         <div 
@@ -130,7 +130,10 @@
                                     <span class="model">{item.model}</span>
                                     <span class="cost">{item.totalDollars}</span>
                                 </div>
-                                <span class="requests">{item.requests} requests</span>
+                                <div class="usage-details">
+                                    <span class="requests">{item.requestCount} requests</span>
+                                    <span class="cost-per-request">${item.costPerRequest.toFixed(2)}/req</span>
+                                </div>
                             </div>
                         {/each}
                     </div>
@@ -277,11 +280,6 @@
         color: var(--vscode-symbolIcon-classForeground);
     }
 
-    .requests {
-        color: var(--vscode-descriptionForeground);
-        font-size: 0.75rem;
-    }
-
     .cost {
         color: var(--vscode-charts-green);
         font-weight: bold;
@@ -320,5 +318,23 @@
         to {
             transform: rotate(360deg);
         }
+    }
+
+    .usage-details {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.75rem;
+    }
+
+    .requests {
+        color: var(--vscode-descriptionForeground);
+        font-size: 0.75rem;
+    }
+
+    .cost-per-request {
+        color: var(--vscode-charts-foreground);
+        font-size: 0.75rem;
+        opacity: 0.8;
     }
 </style> 

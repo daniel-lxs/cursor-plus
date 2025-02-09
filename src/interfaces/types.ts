@@ -1,14 +1,6 @@
-export interface UsageItem {
-    calculation: string;
-    totalDollars: string;
-}
-
-export interface UsageBasedPricing {
-    items: UsageItem[];
-    hasUnpaidMidMonthInvoice: boolean;
-    midMonthPayment: number;
-}
-
+// ======================
+// Core Statistics Types
+// ======================
 export interface CursorStats {
     currentMonth: {
         month: number;
@@ -27,6 +19,23 @@ export interface CursorStats {
     };
 }
 
+export interface UsageBasedPricing {
+    items: UsageItem[];
+    hasUnpaidMidMonthInvoice: boolean;
+    midMonthPayment: number;
+}
+
+export interface UsageItem {
+    calculation: string;
+    totalDollars: string;
+    model: string;
+    requestCount: number;
+    costPerRequest: number;
+}
+
+// ======================
+// Database Types
+// ======================
 export interface SQLiteRow {
     value: string;
 }
@@ -36,6 +45,9 @@ export interface SQLiteError extends Error {
     errno?: number;
 }
 
+// ======================
+// API Error Types
+// ======================
 export interface AxiosErrorData {
     status?: number;
     data?: any;
@@ -47,6 +59,9 @@ export interface ExtendedAxiosError {
     message: string;
 }
 
+// ======================
+// Composer & Timing Types
+// ======================
 export interface ComposerData {
     conversation: Array<{
         timingInfo?: {
@@ -66,23 +81,12 @@ export interface TimingInfo {
     };
 }
 
+// ======================
+// Usage Limit Types
+// ======================
 export interface UsageLimitResponse {
     hardLimit?: number;
     noUsageBasedAllowed?: boolean;
-}
-
-export interface GitHubRelease {
-    tag_name: string;
-    name: string;
-    body: string;
-    prerelease: boolean;
-    html_url: string;
-    zipball_url: string;
-    tarball_url: string;
-    assets: Array<{
-        name: string;
-        browser_download_url: string;
-    }>;
 }
 
 export interface ReleaseCheckResult {
@@ -101,6 +105,9 @@ export interface ReleaseCheckResult {
     }>;
 }
 
+// ======================
+// API Response Types
+// ======================
 export interface CursorUsageResponse {
     'gpt-4': {
         numRequests: number;
@@ -124,4 +131,35 @@ export interface CursorUsageResponse {
         maxTokenUsage: number | null;
     };
     startOfMonth: string;
+}
+
+// ======================
+// Status Bar Tooltip Types
+// ======================
+export interface TooltipError {
+    message: string;
+    details?: string;
+}
+
+export interface PremiumStats {
+    current: number;
+    limit: number;
+    startOfMonth: string;
+    percentage: number;
+}
+
+export interface UsageBasedStats {
+    isEnabled: boolean;
+    limit?: number;
+    currentCost: number;
+    items: UsageItem[];
+    billingPeriod: string;
+    midMonthPayment?: number;
+}
+
+export interface CursorTooltipData {
+    premiumStats?: PremiumStats;
+    usageBasedStats?: UsageBasedStats;
+    error?: TooltipError;
+    lastUpdated: string;
 } 

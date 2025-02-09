@@ -69,6 +69,7 @@ async function fetchMonthData(token: string, month: number, year: number): Promi
         log('[API] Monthly invoice response: ' + JSON.stringify({
             status: response.status,
             hasItems: !!response.data.items,
+            items: response.data.items,
             itemCount: response.data.items?.length,
             hasUnpaidInvoice: response.data.hasUnpaidMidMonthInvoice
         }));
@@ -111,9 +112,16 @@ async function fetchMonthData(token: string, month: number, year: number): Promi
                 // Format cost per request in dollars
                 const costPerRequestDollars = (costPerRequest / 100).toFixed(2);
 
+                // Update the model extraction pattern to capture premium/Haiku info
+                const modelMatch = item.description.match(/(?:to|\(|per such request)(?: |\()?([\w-]+)/);
+                const model = modelMatch ? modelMatch[1] : 'Default';
+
                 usageItems.push({
                     calculation: `${paddedRequestCount}*$${costPerRequestDollars}`,
-                    totalDollars: `$${dollars.toFixed(2)}`
+                    totalDollars: `$${dollars.toFixed(2)}`,
+                    model: model, // Add extracted model
+                    requestCount: requestCount,
+                    costPerRequest: costPerRequest / 100 // Convert to dollars
                 });
             }
         }

@@ -15,7 +15,7 @@ let statsViewProvider: StatsViewProvider;
 let updateStats: () => Promise<void>; // Declare updateStats as a variable
 
 function getRefreshIntervalMs(): number {
-    const config = vscode.workspace.getConfiguration('cursorStats');
+    const config = vscode.workspace.getConfiguration('cursorPlus');
     const intervalSeconds = Math.max(config.get('refreshInterval', 30), 5); // Minimum 5 seconds
     return intervalSeconds * 1000;
 }
@@ -70,7 +70,7 @@ class StatsViewProvider implements vscode.WebviewViewProvider {
 
     resolveWebviewView(
         webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
+        _: vscode.WebviewViewResolveContext,
         token: vscode.CancellationToken
     ): void | Thenable<void> {
         // Return early if the token is cancelled
@@ -135,22 +135,22 @@ export async function activate(context: vscode.ExtensionContext) {
         // Register webview view provider
         statsViewProvider = new StatsViewProvider(context);
         const viewRegistration = vscode.window.registerWebviewViewProvider(
-            'cursor-stats.statsView',
+            'cursor-plus.statsView',
             statsViewProvider
         );
 
         // Register command to show stats panel (now focuses the view)
-        const showStatsCommand = vscode.commands.registerCommand('cursor-stats.showStats', () => {
-            vscode.commands.executeCommand('cursor-stats.statsView.focus');
+        const showStatsCommand = vscode.commands.registerCommand('cursor-plus.showStats', () => {
+            vscode.commands.executeCommand('cursor-plus.statsView.focus');
         });
 
         // Register command to refresh stats
-        const refreshStatsCommand = vscode.commands.registerCommand('cursor-stats.refreshStats', async () => {
+        const refreshStatsCommand = vscode.commands.registerCommand('cursor-plus.refreshStats', async () => {
             await updateStats();
         });
 
         // Register command to set usage limit
-        const setLimitCommand = vscode.commands.registerCommand('cursor-stats.setLimit', async () => {
+        const setLimitCommand = vscode.commands.registerCommand('cursor-plus.setLimit', async () => {
             try {
                 const token = await getCursorTokenFromDB();
                 if (!token) {
@@ -180,6 +180,11 @@ export async function activate(context: vscode.ExtensionContext) {
             } catch (error: any) {
                 vscode.window.showErrorMessage(`Failed to set usage limit: ${error.message}`);
             }
+        });
+
+        // Register command to open settings
+        const openSettingsCommand = vscode.commands.registerCommand('cursor-plus.openSettings', () => {
+            vscode.commands.executeCommand('workbench.action.openSettings', '@ext:daniel-lxs.cursor-plus');
         });
 
         // Add window focus event listeners
@@ -227,7 +232,13 @@ export async function activate(context: vscode.ExtensionContext) {
                             (sum, item) => sum + parseFloat(item.totalDollars.replace('$', '')), 
                             0
                         ),
-                        items: stats.lastMonth.usageBasedPricing.items
+                        items: stats.lastMonth.usageBasedPricing.items.map(item => ({
+                            model: item.model,
+                            totalDollars: item.totalDollars,
+                            calculation: item.calculation,
+                            requestCount: item.requestCount,
+                            costPerRequest: item.costPerRequest
+                        }))
                     }
                 });
 
@@ -246,7 +257,7 @@ export async function activate(context: vscode.ExtensionContext) {
                     }
                     
                     const costText = ` $(credit-card) $${totalCost.toFixed(2)}`;
-                    const config = vscode.workspace.getConfiguration('cursorStats');
+                    const config = vscode.workspace.getConfiguration('cursorPlus');
                     const showTotalRequests = config.get<boolean>('showTotalRequests', false);
                     
                     if (showTotalRequests) {
@@ -321,7 +332,8 @@ export async function activate(context: vscode.ExtensionContext) {
             refreshStatsCommand,
             setLimitCommand,
             viewRegistration,
-            focusListener
+            focusListener,
+            openSettingsCommand
         );
 
         // Show status bar item explicitly

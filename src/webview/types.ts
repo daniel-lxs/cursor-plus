@@ -10,7 +10,9 @@ export interface UsageBasedStats {
     currentCost: number;
     items: Array<{
         model: string;
-        requests: number;
         totalDollars: string;
+        requestCount: number;
+        costPerRequest: number;
+        calculation?: string;
     }>;
 } 

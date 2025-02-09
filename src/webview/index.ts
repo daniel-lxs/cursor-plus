@@ -12,7 +12,12 @@ type Props = {
         isEnabled: boolean;
         limit: number;
         currentCost: number;
-        items: never[];
+        items: Array<{
+            model: string;
+            totalDollars: string;
+            requests: number;
+            calculation?: string;
+        }>;
     };
 };
 

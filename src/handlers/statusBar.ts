@@ -1,15 +1,19 @@
 import * as vscode from 'vscode';
 import { log } from '../utils/logger';
 import { getCurrentUsageLimit } from '../services/api';
-import { getCursorTokenFromDB } from '../services/database';
-
+import { 
+    CursorTooltipData,
+    PremiumStats,
+    UsageBasedStats,
+    TooltipError 
+} from '../interfaces/types';
 
 let statusBarItem: vscode.StatusBarItem;
 
 export function createStatusBarItem(): vscode.StatusBarItem {
     log('[Status Bar] Creating status bar item...');
     statusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    statusBarItem.command = 'cursor-stats.showStats';
+    statusBarItem.command = 'cursor-plus.showStats';
     log('[Status Bar] Status bar alignment: Right, Priority: 100');
     return statusBarItem;
 }
@@ -45,31 +49,6 @@ export function formatRelativeTime(dateString: string): string {
     const seconds = date.getSeconds().toString().padStart(2, '0');
     
     return `${hours}:${minutes}:${seconds}`;
-}
-
-interface CursorTooltipData {
-    premiumStats?: {
-        current: number;
-        limit: number;
-        startOfMonth: string;
-        percentage: number;
-    };
-    usageBasedStats?: {
-        isEnabled: boolean;
-        limit?: number;
-        currentCost: number;
-        items: Array<{
-            calculation: string;
-            totalDollars: string;
-        }>;
-        billingPeriod: string;
-        midMonthPayment?: number;
-    };
-    error?: {
-        message: string;
-        details?: string;
-    };
-    lastUpdated: string;
 }
 
 export async function gatherTooltipData(stats: any, token: string | null): Promise<CursorTooltipData> {
@@ -164,7 +143,7 @@ function createErrorSection(error: { message: string; details?: string }): strin
 }
 
 function createPremiumSection(stats: NonNullable<CursorTooltipData['premiumStats']>): string {
-    return `### Premium Fast Requests
+    return `### Fast Requests
 **Billing Period:** ${stats.startOfMonth}  
 **Usage:** ${stats.current} out of ${stats.limit}  
 **Progress:** ${stats.percentage}% utilized\n`;
@@ -173,7 +152,7 @@ function createPremiumSection(stats: NonNullable<CursorTooltipData['premiumStats
 function createUsageSection(stats: NonNullable<CursorTooltipData['usageBasedStats']>): string {
     const sections: string[] = [];
     
-    sections.push(`### Usage-Based Pricing`);
+    sections.push(`### Usage-Based Stats`);
     
     if (!stats.isEnabled) {
         sections.push(`**Status:** Currently disabled\n`);
@@ -202,8 +181,8 @@ function createUsageSection(stats: NonNullable<CursorTooltipData['usageBasedStat
         }
 
         const usageItems = stats.items.map(item => {
-            const modelName = item.calculation.replace('•', '').trim();
-            return `- ${modelName}: ${item.totalDollars}`;
+            return `- ${item.model}:  
+   ${item.calculation} = ${item.totalDollars}`;
         }).join('\n');
         
         sections.push(usageItems + '\n');
@@ -219,9 +198,9 @@ function createFooter(lastUpdated: string): string {
 
 #### Account Management
 - ${ICONS.PERSON} [Account Settings](https://www.cursor.com/settings)
-- ${ICONS.GEAR} [Extension Settings](command:workbench.action.openSettings?%22@ext%3ADwtexe.cursor-stats%22)
-- ${ICONS.LOCK} [Set Usage Limit](command:cursor-stats.setLimit)
-- ${ICONS.SYNC} [Refresh Statistics](command:cursor-stats.refreshStats)
+- ${ICONS.GEAR} [Extension Settings](command:workbench.action.openSettings?%22@ext%3Adaniel-lxs.cursor-plus%22)
+- ${ICONS.LOCK} [Set Usage Limit](command:cursor-plus.setLimit)
+- ${ICONS.SYNC} [Refresh Statistics](command:cursor-plus.refreshStats)
 
 **Last Updated:** ${formatRelativeTime(lastUpdated)}\n`;
 }
