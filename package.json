@@ -1,13 +1,13 @@
 {
-  "name": "cursor-stats",
+  "name": "cursor-plus",
   "displayName": "Cursor Stats",
   "description": "A Cursor extension for monitoring usage.",
-  "version": "1.0.8-beta.1",
-  "publisher": "Dwtexe",
+  "version": "0.1.0",
+  "publisher": "daniel-lxs",
   "icon": "images/icon.png",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Dwtexe/cursor-stats"
+    "url": "https://github.com/daniel-lxs/cursor-plus"
   },
   "engines": {
     "vscode": "^1.85.0"
@@ -33,70 +33,70 @@
     "viewsContainers": {
       "activitybar": [
         {
-          "id": "cursor-stats",
-          "title": "Cursor Stats",
+          "id": "cursor-plus",
+          "title": "Cursor Plus",
           "icon": "$(graph)"
         }
       ]
     },
     "views": {
-      "cursor-stats": [
+      "cursor-plus": [
         {
           "type": "webview",
-          "id": "cursor-stats.statsView",
-          "name": "Cursor Statistics"
+          "id": "cursor-plus.statsView",
+          "name": "Cursor Plus"
         }
       ]
     },
     "commands": [
       {
-        "command": "cursor-stats.updateToken",
-        "title": "Cursor Stats: Update Session Token"
+        "command": "cursor-plus.updateToken",
+        "title": "Cursor Plus: Update Session Token"
       },
       {
-        "command": "cursor-stats.refreshStats",
-        "title": "Cursor Stats: Refresh Statistics",
+        "command": "cursor-plus.showStats",
+        "title": "Cursor Plus: Show Statistics Panel",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "cursor-plus.refreshStats",
+        "title": "Cursor Plus: Refresh Statistics",
         "icon": "$(sync)"
       },
       {
-        "command": "cursor-stats.openSettings",
-        "title": "Cursor Stats: Open Settings",
-        "icon": "$(gear)"
-      },
-      {
-        "command": "cursor-stats.setLimit",
-        "title": "Cursor Stats: Usage Based Pricing Settings",
+        "command": "cursor-plus.setLimit",
+        "title": "Cursor Plus: Usage Based Pricing Settings",
         "icon": "$(dollar)"
       },
       {
-        "command": "cursor-stats.showStats",
-        "title": "Cursor Stats: Show Statistics Panel",
-        "icon": "$(graph)"
+        "command": "cursor-plus.openSettings",
+        "title": "Cursor Plus: Open Settings",
+        "icon": "$(gear)"
       }
     ],
     "configuration": [
       {
-        "title": "Cursor Stats",
+        "title": "Cursor Plus",
         "properties": {
-          "cursorStats.enableLogging": {
+          "cursorPlus.enableLogging": {
             "type": "boolean",
             "default": false,
             "description": "Enable detailed logging for debugging purposes.",
             "scope": "window"
           },
-          "cursorStats.enableStatusBarColors": {
+          "cursorPlus.enableStatusBarColors": {
             "type": "boolean",
             "default": true,
             "description": "Enable colored status bar based on usage percentage.",
             "scope": "window"
           },
-          "cursorStats.enableAlerts": {
+          "cursorPlus.enableAlerts": {
             "type": "boolean",
             "default": true,
             "description": "Enable usage alert notifications.",
             "scope": "window"
           },
-          "cursorStats.usageAlertThresholds": {
+          "cursorPlus.usageAlertThresholds": {
             "type": "array",
             "default": [
               10,
@@ -114,14 +114,14 @@
             },
             "scope": "window"
           },
-          "cursorStats.refreshInterval": {
+          "cursorPlus.refreshInterval": {
             "type": "number",
             "default": 60,
             "minimum": 10,
             "description": "How often to refresh the stats (in seconds). Minimum 10 seconds.",
             "scope": "window"
           },
-          "cursorStats.showTotalRequests": {
+          "cursorPlus.showTotalRequests": {
             "type": "boolean",
             "default": false,
             "description": "Show total requests (fast requests + usage-based requests) in the status bar.",
@@ -138,7 +138,7 @@
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vscode-test",
-    "vsix": "vsce package"
+    "vsix": "mkdir -p bin && vsce package --out bin"
   },
   "devDependencies": {
     "@rollup/plugin-alias": "^5.1.1",
