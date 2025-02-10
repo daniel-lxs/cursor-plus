@@ -73,7 +73,7 @@ export async function gatherTooltipData(stats: any, token: string | null): Promi
             data.premiumStats = {
                 current: stats.premiumRequests.current,
                 limit: stats.premiumRequests.limit,
-                startOfMonth: new Date(stats.premiumRequests.startOfMonth).toLocaleDateString(),
+                startOfMonth: new Date(stats.premiumRequests.startOfMonth).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
                 percentage: premiumPercent
             };
         }
@@ -91,7 +91,7 @@ export async function gatherTooltipData(stats: any, token: string | null): Promi
                 limit: limitResponse.hardLimit,
                 currentCost: totalCost,
                 items: stats?.lastMonth?.usageBasedPricing?.items || [],
-                billingPeriod: new Date().toLocaleDateString(),
+                billingPeriod: new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
                 midMonthPayment: 0 // Add this if you have mid-month payment data
             };
         } catch (error: any) {
