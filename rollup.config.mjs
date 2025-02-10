@@ -41,7 +41,7 @@ export default {
         }),
         resolve({
             browser: true,
-            dedupe: ['svelte'],
+            dedupe: [],
             extensions: ['.svelte', '.mjs', '.js', '.json', '.node']
         }),
         commonjs(),

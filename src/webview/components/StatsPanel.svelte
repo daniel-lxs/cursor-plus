@@ -43,7 +43,7 @@
                     stats.premium = message.premiumStats;
                     stats.usage = message.usageBasedStats;
                     isLoading = false;  // Set loading to false when data is received
-                    lastUpdated = new Date().toLocaleString();
+                    lastUpdated = new Date().toLocaleTimeString();
                     updateChartData();
                     break;
             }
@@ -90,7 +90,9 @@
                 </div>
                 <div class="stat-row compact">
                     <span>{stats.premium?.current || 0} / {stats.premium?.limit || 0}</span>
-                    <span class="period">{new Date(stats.premium?.startOfMonth || '').toLocaleDateString()}</span>
+                    <span class="period">
+                        {new Date(stats.premium?.startOfMonth || '').toLocaleDateString('en-US', { day: 'numeric', month: 'long' })}
+                    </span>
                 </div>
             </div>
         </section>
@@ -148,20 +150,20 @@
             <h3>Account Management</h3>
             <div class="footer-links">
                 <a href="https://www.cursor.com/settings" target="_blank" class="footer-link">
-                    <User /> Account Settings
+                    <User size={16}/> Account Settings
                 </a>
                 <button class="footer-link" onclick={() => vscode?.postMessage({ command: 'openSettings' })}>
-                    <Settings /> Extension Settings
+                    <Settings size={16}/> Extension Settings
                 </button>
                 <button class="footer-link" onclick={() => vscode?.postMessage({ command: 'setLimit' })}>
-                    <Lock /> Set Usage Limit
+                    <Lock size={16}/> Set Usage Limit
                 </button>
                 <button class="footer-link" onclick={handleRefresh}>
-                    <RefreshCw /> Refresh Statistics
+                    <RefreshCw size={16}/> Refresh Statistics
                 </button>
             </div>
             <div class="last-updated">
-                <Clock /> Last updated: {new Date(stats.premium?.startOfMonth || Date.now()).toLocaleDateString()}
+                <Clock size={16}/> &nbsp; Last updated: {lastUpdated}
             </div>
         </footer>
     {/if}
