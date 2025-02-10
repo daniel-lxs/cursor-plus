@@ -12,9 +12,12 @@ const production = !process.env.ROLLUP_WATCH;
 export default {
     input: 'src/webview/index.ts',
     output: {
-        file: 'out/webview/bundle.js',
+        dir: 'out/webview',
+        entryFileNames: 'bundle.js',
         format: 'iife',
-        name: 'app'
+        name: 'app',
+        sourcemap: !production,
+        inlineDynamicImports: true
     },
     plugins: [
         alias({
@@ -29,7 +32,7 @@ export default {
                 }
             }),
             compilerOptions: {
-                dev: !production
+                dev: !production,
             },
             emitCss: true
         }),
@@ -38,14 +41,17 @@ export default {
         }),
         resolve({
             browser: true,
-            dedupe: ['svelte']
+            dedupe: ['svelte'],
+            extensions: ['.svelte', '.mjs', '.js', '.json', '.node']
         }),
         commonjs(),
         json(),
         typescript({
             tsconfig: './tsconfig.svelte.json',
             rootDir: './src',
-            sourceMap: !production
+            sourceMap: !production,
+            noEmit: true,
+            outDir: 'out/webview'
         })
     ],
     watch: {

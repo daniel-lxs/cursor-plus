@@ -132,8 +132,11 @@
     ]
   },
   "scripts": {
+    "clean": "rm -rf out/",
+    "build-webview": "rollup -c rollup.config.mjs",
+    "build": "npm run compile && npm run build-webview",
     "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./ && rollup --config rollup.config.mjs",
+    "compile": "tsc -p tsconfig.json",
     "watch": "tsc -watch -p ./ & rollup --config rollup.config.mjs -w",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
@@ -171,6 +174,7 @@
   "dependencies": {
     "axios": "^1.6.2",
     "jsonwebtoken": "^9.0.2",
+    "lucide-svelte": "^0.475.0",
     "marked": "^15.0.6",
     "semver": "^7.5.4",
     "sql.js": "^1.12.0"

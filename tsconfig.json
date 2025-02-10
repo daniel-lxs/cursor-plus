@@ -6,16 +6,20 @@
 		"outDir": "out",
 		"rootDir": "src",
 		"moduleResolution": "Node",
-		"verbatimModuleSyntax": false
+		"verbatimModuleSyntax": false,
+		"strict": true,
+		"sourceMap": true,
+		"esModuleInterop": true
 	},
 	"include": [
 		"src/extension.ts",
 		"src/handlers/**/*.ts",
 		"src/services/**/*.ts",
 		"src/utils/**/*.ts",
-		"src/interfaces/**/*.ts",
-		"src/webview/**/*.svelte",
-		"src/webview/**/*.ts"
+		"src/interfaces/**/*.ts"
 	],
-	"exclude": ["node_modules", ".vscode-test"]
+	"exclude": [
+		"node_modules",
+		".vscode-test"
+	]
 }

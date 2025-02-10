@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import type { PremiumStats, UsageBasedStats } from '../types';
+  import { Settings, User, Lock, RefreshCw, Clock } from 'lucide-svelte';
 
     type Props = {
         premiumStats: PremiumStats;
@@ -14,6 +15,7 @@
     });
 
     let isLoading = $state(true);  // Add loading state
+    let lastUpdated = $state('');
 
     // VSCode API access with proper typing and environment check
     const vscode = typeof acquireVsCodeApi !== 'undefined' ? acquireVsCodeApi<VSCodeMessage>() : undefined;
@@ -41,6 +43,7 @@
                     stats.premium = message.premiumStats;
                     stats.usage = message.usageBasedStats;
                     isLoading = false;  // Set loading to false when data is received
+                    lastUpdated = new Date().toLocaleString();
                     updateChartData();
                     break;
             }
@@ -140,6 +143,27 @@
                 </div>
             </section>
         {/if}
+
+        <footer class="management-footer">
+            <h3>Account Management</h3>
+            <div class="footer-links">
+                <a href="https://www.cursor.com/settings" target="_blank" class="footer-link">
+                    <User /> Account Settings
+                </a>
+                <button class="footer-link" onclick={() => vscode?.postMessage({ command: 'openSettings' })}>
+                    <Settings /> Extension Settings
+                </button>
+                <button class="footer-link" onclick={() => vscode?.postMessage({ command: 'setLimit' })}>
+                    <Lock /> Set Usage Limit
+                </button>
+                <button class="footer-link" onclick={handleRefresh}>
+                    <RefreshCw /> Refresh Statistics
+                </button>
+            </div>
+            <div class="last-updated">
+                <Clock /> Last updated: {new Date(stats.premium?.startOfMonth || Date.now()).toLocaleDateString()}
+            </div>
+        </footer>
     {/if}
 </main>
 
@@ -336,5 +360,48 @@
         color: var(--vscode-charts-foreground);
         font-size: 0.75rem;
         opacity: 0.8;
+    }
+
+    /* Add footer styles */
+    .management-footer {
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--vscode-panel-border);
+    }
+
+    .management-footer h3 {
+        font-size: 0.9rem;
+        margin: 0 0 0.5rem 0;
+        color: var(--vscode-editor-foreground);
+    }
+
+    .footer-links {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .footer-link {
+        background: none;
+        border: none;
+        padding: 0.25rem;
+        cursor: pointer;
+        text-align: left;
+        color: var(--vscode-textLink-foreground);
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        font-size: 0.8rem;
+    }
+
+    .footer-link:hover {
+        text-decoration: underline;
+    }
+
+    .last-updated {
+        margin-top: 0.75rem;
+        font-size: 0.7rem;
+        opacity: 0.7;
+        color: var(--vscode-descriptionForeground);
     }
 </style> 

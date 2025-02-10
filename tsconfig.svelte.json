@@ -1,24 +1,19 @@
 {
-    "extends": "@tsconfig/svelte/tsconfig.json",
+    "extends": "./tsconfig.json",
     "compilerOptions": {
-        "moduleResolution": "bundler",
-        "target": "ESNext",
-        "module": "ESNext",
-        "outDir": "out/webview",
-        "rootDir": "src/webview",
+        "module": "esnext",
+        "target": "esnext",
+        "moduleResolution": "node",
         "isolatedModules": true,
-        "resolveJsonModule": true,
-        "verbatimModuleSyntax": false,
-        "allowJs": true,
-        "checkJs": true,
-        "skipLibCheck": true,
-        "sourceMap": true,
-        "types": ["vscode-webview"],
-        "baseUrl": ".",
-        "paths": {
-            "@/*": ["./src/*"]
-        }
+        "allowJs": false,
+        "checkJs": false,
+        "noEmit": true
     },
-    "include": ["src/webview/**/*.ts", "src/webview/**/*.js", "src/webview/**/*.svelte"],
-    "exclude": ["node_modules", ".vscode-test"]
+    "include": [
+        "src/webview/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        ".vscode-test"
+    ]
 } 
