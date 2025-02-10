@@ -65,8 +65,13 @@
       },
       {
         "command": "cursor-plus.setLimit",
-        "title": "Cursor Plus: Usage Based Pricing Settings",
+        "title": "Cursor Plus: Set Usage Limit",
         "icon": "$(dollar)"
+      },
+      {
+        "command": "cursor-plus.toggleUsageBasedPricing",
+        "title": "Cursor Plus: Toggle Usage-Based Pricing",
+        "icon": "$(toggle)"
       },
       {
         "command": "cursor-plus.openSettings",
@@ -137,7 +142,7 @@
     "build": "npm run compile && npm run build-webview",
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p tsconfig.json",
-    "watch": "tsc -watch -p ./ & rollup --config rollup.config.mjs -w",
+    "watch": "npm run build && tsc -watch -p ./ & rollup --config rollup.config.mjs -w",
     "pretest": "npm run compile && npm run lint",
     "lint": "eslint src --ext ts",
     "test": "vscode-test",

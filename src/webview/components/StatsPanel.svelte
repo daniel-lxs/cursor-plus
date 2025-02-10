@@ -16,18 +16,24 @@
     });
 
     let isLoading = $state(true);  // Add loading state
+    let isUsageBasedEnabled = $state(props.usageBasedStats.isEnabled ?? false); // Initialize with the value from props
     let lastUpdated = $state('');
+    let isToggling = $state(false);
 
     // VSCode API access with proper typing and environment check
-    const vscode = typeof acquireVsCodeApi !== 'undefined' ? acquireVsCodeApi<VSCodeMessage>() : undefined;
+    const vscode = typeof acquireVsCodeApi !== 'undefined' ? acquireVsCodeApi<WebviewToExtensionMessage>() : undefined;
 
-    // Types for messages
-    type VSCodeMessage = {
-        command: 'refresh';
-    } | {
+    // Define types for messages SENT TO the webview
+    type ExtensionToWebviewMessage = {
         type: 'updateStats';
         premiumStats: PremiumStats;
         usageBasedStats: UsageBasedStats;
+    };
+
+    // Define a general type for messages RECEIVED FROM the webview
+    type WebviewToExtensionMessage = {
+        command: string; // Keep it generic
+        [key: string]: any; // Allow any other properties
     };
 
     onMount(() => {
@@ -36,16 +42,18 @@
 
         // Listen for messages from the extension
         window.addEventListener('message', event => {
-            const message = event.data;
+            const message: ExtensionToWebviewMessage = event.data; // Cast to the correct type
             console.log('Received message:', message);
-            
+
             switch (message.type) {
                 case 'updateStats':
                     stats.premium = message.premiumStats;
                     stats.usage = message.usageBasedStats;
+                    isUsageBasedEnabled = message.usageBasedStats.isEnabled; // Update isUsageBasedEnabled
                     isLoading = false;  // Set loading to false when data is received
                     lastUpdated = new Date().toLocaleTimeString();
                     updateChartData();
+                    isToggling = false;
                     break;
             }
         });
@@ -57,10 +65,20 @@
 
     function handleRefresh() {
         console.log('Refresh clicked');
-        vscode?.postMessage({
+        vscode.postMessage({
             command: 'refresh'
         });
     }
+
+    function handleToggleUsageBased() {
+        isToggling = true;
+        vscode.postMessage({ command: 'toggleUsageBasedPricing' });
+    }
+
+    function handleSetLimit() {
+        vscode.postMessage({ command: 'setLimit' });
+    }
+
 </script>
 
 <main class="stats-panel">
@@ -83,9 +101,9 @@
                     <h2>Premium Fast Requests</h2>
                     <span class="usage-badge">{(stats.premium?.limit ? ((stats.premium?.current || 0) / stats.premium.limit * 100) : 0).toFixed(1)}%</span>
                 </div>
-                <ProgressBar 
-                    percentage={stats.premium?.limit ? 
-                        ((stats.premium?.current || 0) / stats.premium.limit * 100) : 
+                <ProgressBar
+                    percentage={stats.premium?.limit ?
+                        ((stats.premium?.current || 0) / stats.premium.limit * 100) :
                         0}
                 />
                 <div class="stat-row compact">
@@ -101,11 +119,12 @@
             <div class="stat-card">
                 <div class="stat-header">
                     <h2>Usage-Based Pricing</h2>
-                    <span class="status-badge {stats.usage?.isEnabled ? 'enabled' : 'disabled'}">
-                        {stats.usage?.isEnabled ? 'Enabled' : 'Disabled'}
-                    </span>
+                    <label class="switch">
+                        <input type="checkbox" checked={isUsageBasedEnabled} onchange={handleToggleUsageBased} disabled={isToggling}/>
+                        <span class="slider round"></span>
+                    </label>
                 </div>
-                {#if stats.usage?.isEnabled}
+                {#if isUsageBasedEnabled}
                     <div class="stat-row compact">
                         <span>Monthly Limit</span>
                         <span>${stats.usage?.limit || 0}</span>
@@ -115,8 +134,8 @@
                         <span>${stats.usage?.currentCost.toFixed(2) || 0}</span>
                     </div>
                     <ProgressBar
-                        percentage={stats.usage?.limit ? 
-                            ((stats.usage?.currentCost || 0) / stats.usage.limit * 100) : 
+                        percentage={stats.usage?.limit ?
+                            ((stats.usage?.currentCost || 0) / stats.usage.limit * 100) :
                             0}
                     />
                 {/if}
@@ -151,10 +170,10 @@
                 <a href="https://www.cursor.com/settings" target="_blank" class="footer-link">
                     <User size={16}/> Account Settings
                 </a>
-                <button class="footer-link" onclick={() => vscode?.postMessage({ command: 'openSettings' })}>
+                <button class="footer-link" onclick={() => vscode.postMessage({ command: 'openSettings' })}>
                     <Settings size={16}/> Extension Settings
                 </button>
-                <button class="footer-link" onclick={() => vscode?.postMessage({ command: 'setLimit' })}>
+                <button class="footer-link" onclick={handleSetLimit}>
                     <Lock size={16}/> Set Usage Limit
                 </button>
                 <button class="footer-link" onclick={handleRefresh}>
@@ -240,25 +259,9 @@
         opacity: 0.9;
     }
 
-    .status-badge {
-        padding: 0.15rem 0.35rem;
-        border-radius: 3px;
-        font-size: 0.7rem;
-    }
-
     .usage-badge {
         font-size: 0.7rem;
         opacity: 0.8;
-    }
-
-    .status-badge.enabled {
-        background: var(--vscode-testing-iconPassed);
-        color: var(--vscode-editor-background);
-    }
-
-    .status-badge.disabled {
-        background: var(--vscode-testing-iconFailed);
-        color: var(--vscode-editor-background);
     }
 
     .usage-list {
@@ -389,5 +392,64 @@
         font-size: 0.7rem;
         opacity: 0.7;
         color: var(--vscode-descriptionForeground);
+    }
+
+    /* Toggle Switch Styles */
+    .switch {
+        position: relative;
+        display: inline-block;
+        width: 36px;
+        height: 18px;
+    }
+
+    .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #ccc;
+        transition: .4s;
+        border-radius: 17px;
+    }
+
+    .slider:before {
+        position: absolute;
+        content: "";
+        height: 14px;
+        width: 14px;
+        left: 2px;
+        bottom: 2px;
+        background-color: white;
+        transition: .4s;
+        border-radius: 50%;
+    }
+
+    input:checked + .slider {
+        background-color: var(--vscode-charts-green);
+    }
+
+    input:focus + .slider {
+        box-shadow: 0 0 1px var(--vscode-charts-green);
+    }
+
+    input:checked + .slider:before {
+        transform: translateX(18px);
+    }
+
+    /* Rounded sliders */
+    .slider.round {
+        border-radius: 17px;
+    }
+
+    .slider.round:before {
+        border-radius: 50%;
     }
 </style> 

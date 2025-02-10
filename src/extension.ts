@@ -6,6 +6,7 @@ import { initializeLogging, log } from './utils/logger';
 import { getCursorTokenFromDB } from './services/database';
 import { checkUsageBasedStatus, getCurrentUsageLimit, setUsageLimit, fetchCursorStats, getStripeSessionUrl } from './services/api';
 import { checkAndNotifyUsage, resetNotifications } from './handlers/notifications';
+import { CursorStats } from './interfaces/types';
 
 let statusBarItem: vscode.StatusBarItem;
 let refreshInterval: NodeJS.Timeout;
@@ -13,6 +14,12 @@ let outputChannel: vscode.OutputChannel | undefined;
 let isWindowFocused: boolean = true; // Add focus state tracking
 let statsViewProvider: StatsViewProvider;
 let updateStats: () => Promise<void>; // Declare updateStats as a variable
+
+// Add global state for stats
+let globalStats: { data: CursorStats | null; lastUpdated: number } = {
+    data: null,
+    lastUpdated: 0,
+};
 
 function getRefreshIntervalMs(): number {
     const config = vscode.workspace.getConfiguration('cursorPlus');
@@ -98,8 +105,23 @@ class StatsViewProvider implements vscode.WebviewViewProvider {
 
         // Handle messages from the webview
         webviewView.webview.onDidReceiveMessage(message => {
-            if (message.command === 'refresh' && !token.isCancellationRequested) {
-                updateStats();
+            if (token.isCancellationRequested) {
+                return;
+            }
+            switch (message.command) {
+                case 'refresh':
+                    updateStats();
+                    break;
+                case 'toggleUsageBasedPricing':
+                    vscode.commands.executeCommand('cursor-plus.toggleUsageBasedPricing');
+                    break;
+                case 'setLimit':
+                    vscode.commands.executeCommand('cursor-plus.setLimit');
+                    break;
+                case 'openSettings':
+                    log('[Webview] Received openSettings command');
+                    vscode.commands.executeCommand('cursor-plus.openSettings');
+                    break;
             }
         });
 
@@ -115,6 +137,39 @@ class StatsViewProvider implements vscode.WebviewViewProvider {
         if (this._view) {
             this._view.webview.postMessage(message);
         }
+    }
+}
+
+// Shared function for getting limit input
+async function getLimitInput(title: string): Promise<number | undefined> {
+    const input = await vscode.window.showInputBox({
+        title,
+        prompt: 'Enter your monthly usage limit in dollars (e.g. 50)',
+        placeHolder: '50',
+        validateInput: (value) => {
+            const num = parseFloat(value);
+            if (isNaN(num) || num <= 0) {
+                return 'Please enter a valid positive number';
+            }
+            return null;
+        }
+    });
+    
+    return input ? parseFloat(input) : undefined;
+}
+
+// Shared function to handle setting usage limit and updating stats
+async function handleSetUsageLimit(token: string, limit: number, isEnabled?: boolean) {
+    try {
+        // Get the current status *before* setting the limit.
+        const currentStatus = await checkUsageBasedStatus(token);
+        const newStatus = isEnabled === undefined ? currentStatus.isEnabled : isEnabled;
+
+        await setUsageLimit(token, limit, !newStatus);
+        await updateStats();
+        vscode.window.showInformationMessage(`Usage limit set to $${limit}`);
+    } catch (error: any) {
+        vscode.window.showErrorMessage(`Failed to set usage limit: ${error.message}`);
     }
 }
 
@@ -149,36 +204,52 @@ export async function activate(context: vscode.ExtensionContext) {
             await updateStats();
         });
 
-        // Register command to set usage limit
+        // Set Limit Command (updates limit only)
         const setLimitCommand = vscode.commands.registerCommand('cursor-plus.setLimit', async () => {
-            try {
-                const token = await getCursorTokenFromDB();
-                if (!token) {
-                    vscode.window.showErrorMessage('No Cursor token found. Please log in first.');
-                    return;
-                }
+            const token = await getCursorTokenFromDB();
+            if (!token) {
+                vscode.window.showErrorMessage('No Cursor token found. Please log in first.');
+                return;
+            }
 
-                const input = await vscode.window.showInputBox({
-                    title: 'Set Monthly Usage Limit',
-                    prompt: 'Enter your monthly usage limit in dollars (e.g. 50)',
-                    placeHolder: '50',
-                    validateInput: (value) => {
-                        const num = parseFloat(value);
-                        if (isNaN(num) || num <= 0) {
-                            return 'Please enter a valid positive number';
-                        }
-                        return null;
-                    }
-                });
+            const usageStatus = await checkUsageBasedStatus(token);
+            
+            // If UBP is disabled, prompt to enable first
+            if (!usageStatus.isEnabled) {
+                const enable = await vscode.window.showInformationMessage(
+                    'Usage-based pricing is disabled. Enable it to set a limit?',
+                    'Enable', 'Cancel'
+                );
+                
+                if (enable !== 'Enable') {return;}
+            }
 
-                if (input) {
-                    const limit = parseFloat(input);
-                    await setUsageLimit(token, limit, true);
-                    await updateStats();
-                    vscode.window.showInformationMessage(`Usage limit set to $${limit}`);
+            const limit = await getLimitInput('Set Monthly Usage Limit');
+            if (limit) {
+                await handleSetUsageLimit(token, limit, true);
+            }
+        });
+
+        // Toggle Command (handles enable/disable flow)
+        const toggleUsageBasedPricingCommand = vscode.commands.registerCommand('cursor-plus.toggleUsageBasedPricing', async () => {
+            const token = await getCursorTokenFromDB();
+            if (!token) {
+                vscode.window.showErrorMessage('No Cursor token found. Please log in first.');
+                return;
+            }
+
+            const usageStatus = await checkUsageBasedStatus(token);
+            const newStatus = !usageStatus.isEnabled;
+
+            if (newStatus) { // Enabling
+                const limit = await getLimitInput('Enable Usage-Based Pricing');
+                if (limit) {
+                    await handleSetUsageLimit(token, limit, true);
                 }
-            } catch (error: any) {
-                vscode.window.showErrorMessage(`Failed to set usage limit: ${error.message}`);
+            } else { // Disabling
+                await handleSetUsageLimit(token, 0, false);
+                await updateStats();
+                vscode.window.showInformationMessage('Usage-based pricing disabled');
             }
         });
 
@@ -206,7 +277,7 @@ export async function activate(context: vscode.ExtensionContext) {
             }
         });
 
-        // Modify updateStats to update both status bar and webview
+        // Modify updateStats to update both status bar and webview, using cached data if available
         updateStats = async function() {
             try {
                 const token = await getCursorTokenFromDB();
@@ -214,11 +285,25 @@ export async function activate(context: vscode.ExtensionContext) {
                     return;
                 }
 
-                const stats = await fetchCursorStats(token);
+                const now = Date.now();
+                let stats: CursorStats;
+                const refreshIntervalMs = getRefreshIntervalMs();
+
+                // Use cached data if it's recent enough
+                if (globalStats.data && (now - globalStats.lastUpdated) < refreshIntervalMs) {
+                    log('[Cache] Using cached stats data');
+                    stats = globalStats.data;
+                } else {
+                    log('[API] Fetching fresh stats data');
+                    stats = await fetchCursorStats(token);
+                    globalStats.data = stats;
+                    globalStats.lastUpdated = now;
+                }
+
                 const usageStatus = await checkUsageBasedStatus(token);
 
                 // Update webview if provider exists
-                statsViewProvider.postMessage({
+                statsViewProvider.postMessage?.({
                     type: 'updateStats',
                     premiumStats: {
                         current: stats.premiumRequests.current,
@@ -229,7 +314,7 @@ export async function activate(context: vscode.ExtensionContext) {
                         isEnabled: usageStatus.isEnabled,
                         limit: usageStatus.limit || 0,
                         currentCost: stats.lastMonth.usageBasedPricing.items.reduce(
-                            (sum, item) => sum + parseFloat(item.totalDollars.replace('$', '')), 
+                            (sum, item) => sum + parseFloat(item.totalDollars.replace('$', '')),
                             0
                         ),
                         items: stats.lastMonth.usageBasedPricing.items.map(item => ({
@@ -331,6 +416,7 @@ export async function activate(context: vscode.ExtensionContext) {
             showStatsCommand,
             refreshStatsCommand,
             setLimitCommand,
+            toggleUsageBasedPricingCommand,
             viewRegistration,
             focusListener,
             openSettingsCommand
