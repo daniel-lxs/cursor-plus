@@ -1,7 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import type { PremiumStats, UsageBasedStats } from '../types';
-  import { Settings, User, Lock, RefreshCw, Clock } from 'lucide-svelte';
+    import { Settings, User, Lock, RefreshCw, Clock } from 'lucide-svelte';
+    import ProgressBar from './ProgressBar.svelte';
 
     type Props = {
         premiumStats: PremiumStats;
@@ -66,7 +67,7 @@
     <header>
         <h1>Cursor Usage</h1>
         <button onclick={handleRefresh}>
-            <span class="icon">🔄</span>
+            <RefreshCw size={16}/>
         </button>
     </header>
 
@@ -80,14 +81,13 @@
             <div class="stat-card">
                 <div class="stat-header">
                     <h2>Premium Fast Requests</h2>
-                    <span class="usage-badge">{((stats.premium?.current || 0) / (stats.premium?.limit || 1) * 100).toFixed(1)}%</span>
+                    <span class="usage-badge">{(stats.premium?.limit ? ((stats.premium?.current || 0) / stats.premium.limit * 100) : 0).toFixed(1)}%</span>
                 </div>
-                <div class="progress-bar">
-                    <div 
-                        class="progress" 
-                        style="width: {((stats.premium?.current || 0) / (stats.premium?.limit || 1)) * 100}%"
-                    ></div>
-                </div>
+                <ProgressBar 
+                    percentage={stats.premium?.limit ? 
+                        ((stats.premium?.current || 0) / stats.premium.limit * 100) : 
+                        0}
+                />
                 <div class="stat-row compact">
                     <span>{stats.premium?.current || 0} / {stats.premium?.limit || 0}</span>
                     <span class="period">
@@ -114,12 +114,11 @@
                         <span>Current Cost</span>
                         <span>${stats.usage?.currentCost.toFixed(2) || 0}</span>
                     </div>
-                    <div class="progress-bar">
-                        <div 
-                            class="progress" 
-                            style="width: {((stats.usage?.currentCost || 0) / (stats.usage?.limit || 1)) * 100}%"
-                        ></div>
-                    </div>
+                    <ProgressBar
+                        percentage={stats.usage?.limit ? 
+                            ((stats.usage?.currentCost || 0) / stats.usage.limit * 100) : 
+                            0}
+                    />
                 {/if}
             </div>
         </section>
@@ -239,21 +238,6 @@
     .stat-row.compact {
         font-size: 0.8rem;
         opacity: 0.9;
-    }
-
-    .progress-bar {
-        width: 100%;
-        height: 4px;
-        background: var(--vscode-progressBar-background);
-        border-radius: 2px;
-        margin: 0.25rem 0;
-        overflow: hidden;
-    }
-
-    .progress {
-        height: 100%;
-        background: var(--vscode-progressBar-foreground);
-        transition: width 0.3s ease;
     }
 
     .status-badge {
