@@ -1,31 +1,25 @@
 {
-    "extends": "@tsconfig/svelte/tsconfig.json",
-    "compilerOptions": {
-        "target": "ESNext",
-        "module": "ESNext",
-        "moduleResolution": "node",
-        "resolveJsonModule": true,
-        "esModuleInterop": true,
-        "forceConsistentCasingInFileNames": true,
-        "strict": true,
-        "skipLibCheck": true,
-        "sourceMap": true,
-        "declaration": false,
-        "noEmit": true,
-        "allowJs": true,
-        "checkJs": false,
-        "baseUrl": "./",
-        "paths": {
-            "@/*": ["src/*"]
-        },
-        "types": ["svelte", "node"]
+  "extends": "@tsconfig/svelte/tsconfig.json",
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "sourceMap": true,
+    "declaration": false,
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
+    "baseUrl": "./",
+    "paths": {
+      "@/*": ["src/*"]
     },
-    "include": [
-        "src/**/*"
-    ],
-    "exclude": [
-        "node_modules/*",
-        "out/*",
-        "dist/*"
-    ]
-} 
+    "types": ["svelte", "node"]
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules/*", "out/*", "dist/*"]
+}

@@ -1,25 +1,22 @@
 {
-	"extends": "./tsconfig.base.json",
-	"compilerOptions": {
-		"module": "CommonJS",
-		"target": "ES2020",
-		"outDir": "out",
-		"rootDir": "src",
-		"moduleResolution": "Node",
-		"verbatimModuleSyntax": false,
-		"strict": true,
-		"sourceMap": true,
-		"esModuleInterop": true
-	},
-	"include": [
-		"src/extension.ts",
-		"src/handlers/**/*.ts",
-		"src/services/**/*.ts",
-		"src/utils/**/*.ts",
-		"src/interfaces/**/*.ts"
-	],
-	"exclude": [
-		"node_modules",
-		".vscode-test"
-	]
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "target": "ES2020",
+    "outDir": "out",
+    "rootDir": "src",
+    "moduleResolution": "Node",
+    "verbatimModuleSyntax": false,
+    "strict": true,
+    "sourceMap": true,
+    "esModuleInterop": true
+  },
+  "include": [
+    "src/extension.ts",
+    "src/handlers/**/*.ts",
+    "src/services/**/*.ts",
+    "src/utils/**/*.ts",
+    "src/interfaces/**/*.ts"
+  ],
+  "exclude": ["node_modules", ".vscode-test"]
 }

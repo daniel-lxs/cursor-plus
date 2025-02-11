@@ -1,9 +1,9 @@
-import sveltePreprocess from 'svelte-preprocess';
+import sveltePreprocess from "svelte-preprocess";
 
 export default {
-    preprocess: sveltePreprocess({
-        typescript: {
-            tsconfigFile: './tsconfig.svelte.json'
-        }
-    })
-}; 
+  preprocess: sveltePreprocess({
+    typescript: {
+      tsconfigFile: "./tsconfig.svelte.json",
+    },
+  }),
+};
