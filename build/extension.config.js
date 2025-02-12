@@ -27,13 +27,13 @@ const config = {
   external: ['vscode'], // Only exclude vscode
   plugins: [
     alias({
-      '@/': path.resolve(__dirname, '../src')
+      '@/': path.resolve(__dirname, '../src'),
     }),
-    copyWasmPlugin
+    copyWasmPlugin,
   ],
   loader: {
     '.json': 'json',
-    '.node': 'copy' // Handle native binaries
+    '.node': 'copy', // Handle native binaries
   },
   sourcemap: isDev,
   minify: !isDev,
@@ -43,11 +43,11 @@ const config = {
   // Target Node.js version that VS Code uses
   target: 'node16',
   // Ensure all dependencies are included
-  metafile: true
+  metafile: true,
 };
 
 if (isDev) {
-  esbuild.context(config).then(ctx => {
+  esbuild.context(config).then((ctx) => {
     ctx.watch();
     console.log('👀 Watching extension for changes...');
   });
@@ -55,4 +55,4 @@ if (isDev) {
   esbuild.build(config).then(() => {
     console.log('🎉 Extension bundle complete!');
   });
-} 
+}

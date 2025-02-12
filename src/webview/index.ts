@@ -1,8 +1,8 @@
-import { mount } from "svelte";
+import { mount } from 'svelte';
 
-import StatsPanel from "./components/StatsPanel.svelte";
+import StatsPanel from './components/StatsPanel.svelte';
 
-const app = document.getElementById("app");
+const app = document.getElementById('app');
 if (app) {
   mount(StatsPanel, {
     target: app,
@@ -10,14 +10,14 @@ if (app) {
       premiumStats: {
         current: 0,
         limit: 0,
-        startOfMonth: "",
+        startOfMonth: '',
       },
       usageBasedStats: {
         isEnabled: false,
         limit: 0,
         currentCost: 0,
         items: [],
-        billingPeriod: "",
+        billingPeriod: '',
         midMonthPayment: 0,
       },
     },

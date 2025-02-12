@@ -18,17 +18,20 @@ A powerful extension enhancing your coding experience in Cursor IDE.
 ## Installation
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/daniel-lxs/cursor-plus.git
 cd cursor-plus
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Build the extension:
+
 ```bash
 npm run build
 ```

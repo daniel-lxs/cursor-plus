@@ -1,24 +1,24 @@
-import * as vscode from "vscode";
-import { log } from "../utils/logger";
-import { getCurrentUsageLimit } from "../services/api";
-import { formatRelativeTime, getNextResetDate } from "../utils/dateUtils";
+import * as vscode from 'vscode';
+import { log } from '../utils/logger';
+import { getCurrentUsageLimit } from '../services/api';
+import { formatRelativeTime, getNextResetDate } from '../utils/dateUtils';
 import {
   CursorTooltipData,
   PremiumStats,
   UsageBasedStats,
   TooltipError,
-} from "../interfaces/types";
+} from '../interfaces/types';
 
 let statusBarItem: vscode.StatusBarItem;
 
 export function createStatusBarItem(): vscode.StatusBarItem {
-  log("[Status Bar] Creating status bar item...");
+  log('[Status Bar] Creating status bar item...');
   statusBarItem = vscode.window.createStatusBarItem(
     vscode.StatusBarAlignment.Right,
-    100,
+    100
   );
-  statusBarItem.command = "cursor-plus.showStats";
-  log("[Status Bar] Status bar alignment: Right, Priority: 100");
+  statusBarItem.command = 'cursor-plus.showStats';
+  log('[Status Bar] Status bar alignment: Right, Priority: 100');
   return statusBarItem;
 }
 
@@ -26,9 +26,9 @@ export function formatTooltipLine(text: string, maxWidth: number = 50): string {
   if (text.length <= maxWidth) {
     return text;
   }
-  const words = text.split(" ");
+  const words = text.split(' ');
   let lines = [];
-  let currentLine = "";
+  let currentLine = '';
 
   for (const word of words) {
     if ((currentLine + word).length > maxWidth) {
@@ -37,25 +37,25 @@ export function formatTooltipLine(text: string, maxWidth: number = 50): string {
       }
       currentLine = word;
     } else {
-      currentLine += (currentLine ? " " : "") + word;
+      currentLine += (currentLine ? ' ' : '') + word;
     }
   }
   if (currentLine) {
     lines.push(currentLine.trim());
   }
-  return lines.join("\n   ");
+  return lines.join('\n   ');
 }
 
 export async function gatherTooltipData(
   stats: any,
-  token: string | null,
+  token: string | null
 ): Promise<CursorTooltipData> {
   try {
     if (!token) {
       return {
         error: {
-          message: "No Cursor token found",
-          details: "Please log in to view statistics",
+          message: 'No Cursor token found',
+          details: 'Please log in to view statistics',
         },
         lastUpdated: new Date().toLocaleString(),
       };
@@ -68,14 +68,14 @@ export async function gatherTooltipData(
     // Get premium stats if available
     if (stats?.premiumRequests) {
       const premiumPercent = Math.round(
-        (stats.premiumRequests.current / stats.premiumRequests.limit) * 100,
+        (stats.premiumRequests.current / stats.premiumRequests.limit) * 100
       );
       data.premiumStats = {
         current: stats.premiumRequests.current,
         limit: stats.premiumRequests.limit,
         startOfMonth: new Date(
-          stats.premiumRequests.startOfMonth,
-        ).toLocaleDateString(undefined, { day: "numeric", month: "short" }),
+          stats.premiumRequests.startOfMonth
+        ).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
         percentage: premiumPercent,
       };
     }
@@ -86,8 +86,8 @@ export async function gatherTooltipData(
       const totalCost =
         stats?.lastMonth?.usageBasedPricing?.items?.reduce(
           (sum: number, item: any) =>
-            sum + parseFloat(item.totalDollars.replace("$", "")),
-          0,
+            sum + parseFloat(item.totalDollars.replace('$', '')),
+          0
         ) || 0;
 
       // Create a date from the current month data
@@ -101,21 +101,21 @@ export async function gatherTooltipData(
         currentCost: totalCost,
         items: stats?.lastMonth?.usageBasedPricing?.items || [],
         billingPeriod: billingDate.toLocaleDateString(undefined, {
-          day: "numeric",
-          month: "short",
+          day: 'numeric',
+          month: 'short',
         }),
         midMonthPayment:
           stats?.lastMonth?.usageBasedPricing?.midMonthPayment || 0,
       };
     } catch (error: any) {
-      log("[API] Error fetching usage limit: " + error.message, true);
+      log('[API] Error fetching usage limit: ' + error.message, true);
     }
 
     return data;
   } catch (error: any) {
     return {
       error: {
-        message: "Error gathering tooltip data",
+        message: 'Error gathering tooltip data',
         details: error.message,
       },
       lastUpdated: new Date().toLocaleString(),
@@ -124,26 +124,26 @@ export async function gatherTooltipData(
 }
 
 const ICONS = {
-  GRAPH: "$(graph)",
-  ZAP: "$(zap)",
-  CALENDAR: "$(calendar)",
-  PULSE: "$(pulse)",
-  CHART: "$(chart-line)",
-  CREDIT_CARD: "$(credit-card)",
-  CHECK: "$(check)",
-  X: "$(x)",
-  INFO: "$(info)",
-  ROCKET: "$(rocket)",
-  LIGHT_BULB: "$(light-bulb)",
-  ARROW: "$(arrow-right)",
-  LOCK: "$(lock)",
-  CIRCLE_SLASH: "$(circle-slash)",
-  PERSON: "$(person)",
-  GEAR: "$(gear)",
-  SYNC: "$(sync)",
-  CLOCK: "$(clock)",
-  ERROR: "$(error)",
-  LIST: "$(list-ordered)",
+  GRAPH: '$(graph)',
+  ZAP: '$(zap)',
+  CALENDAR: '$(calendar)',
+  PULSE: '$(pulse)',
+  CHART: '$(chart-line)',
+  CREDIT_CARD: '$(credit-card)',
+  CHECK: '$(check)',
+  X: '$(x)',
+  INFO: '$(info)',
+  ROCKET: '$(rocket)',
+  LIGHT_BULB: '$(light-bulb)',
+  ARROW: '$(arrow-right)',
+  LOCK: '$(lock)',
+  CIRCLE_SLASH: '$(circle-slash)',
+  PERSON: '$(person)',
+  GEAR: '$(gear)',
+  SYNC: '$(sync)',
+  CLOCK: '$(clock)',
+  ERROR: '$(error)',
+  LIST: '$(list-ordered)',
 } as const;
 
 function createHeader(title: string): string {
@@ -155,11 +155,11 @@ function createErrorSection(error: {
   details?: string;
 }): string {
   return `### Error
-**Message:** ${error.message}${error.details ? `\n**Details:** ${error.details}` : ""}\n`;
+**Message:** ${error.message}${error.details ? `\n**Details:** ${error.details}` : ''}\n`;
 }
 
 function createPremiumSection(
-  stats: NonNullable<CursorTooltipData["premiumStats"]>,
+  stats: NonNullable<CursorTooltipData['premiumStats']>
 ): string {
   return `### Fast Requests
 **Usage:** ${stats.current} / ${stats.limit} (${stats.percentage}%)
@@ -167,7 +167,7 @@ function createPremiumSection(
 }
 
 function createUsageSection(
-  stats: NonNullable<CursorTooltipData["usageBasedStats"]>,
+  stats: NonNullable<CursorTooltipData['usageBasedStats']>
 ): string {
   const sections: string[] = [];
 
@@ -175,15 +175,15 @@ function createUsageSection(
 
   if (!stats.isEnabled) {
     sections.push(`**Status:** Currently disabled\n`);
-    return sections.join("\n");
+    return sections.join('\n');
   }
 
   if (stats.limit) {
     const usagePercentage = ((stats.currentCost / stats.limit) * 100).toFixed(
-      1,
+      1
     );
     sections.push(
-      `**Monthly Limit:** $${stats.limit.toFixed(2)} (${usagePercentage}%)\n**Billing Date:** ${getNextResetDate(stats.billingPeriod)}\n`,
+      `**Monthly Limit:** $${stats.limit.toFixed(2)} (${usagePercentage}%)\n**Billing Date:** ${getNextResetDate(stats.billingPeriod)}\n`
     );
   }
 
@@ -196,7 +196,7 @@ function createUsageSection(
       sections.push(
         `**Total:** $${stats.currentCost.toFixed(2)}
 **Paid:** $${stats.midMonthPayment.toFixed(2)}
-**Unpaid:** $${unpaidAmount.toFixed(2)}\n`,
+**Unpaid:** $${unpaidAmount.toFixed(2)}\n`
       );
     } else {
       sections.push(`**Total Cost:** $${stats.currentCost.toFixed(2)}\n`);
@@ -207,14 +207,14 @@ function createUsageSection(
       .map((item) => {
         return `- ${item.model}: ${item.requestCount}*${item.costPerRequest} = ${item.totalDollars}`;
       })
-      .join("\n");
+      .join('\n');
 
-    sections.push(usageItems + "\n");
+    sections.push(usageItems + '\n');
   } else {
     sections.push(`**Status:** No usage recorded for this period\n`);
   }
 
-  return sections.join("\n");
+  return sections.join('\n');
 }
 
 function createFooter(lastUpdated: string): string {
@@ -229,7 +229,7 @@ function createFooter(lastUpdated: string): string {
 }
 
 export async function createMarkdownTooltip(
-  tooltipData: CursorTooltipData,
+  tooltipData: CursorTooltipData
 ): Promise<vscode.MarkdownString> {
   const tooltip = new vscode.MarkdownString();
   tooltip.isTrusted = true;
@@ -239,7 +239,7 @@ export async function createMarkdownTooltip(
   const sections: string[] = [];
 
   // Header
-  sections.push(createHeader("Cursor Usage Statistics"));
+  sections.push(createHeader('Cursor Usage Statistics'));
 
   // Error State or Stats
   if (tooltipData.error) {
@@ -258,47 +258,47 @@ export async function createMarkdownTooltip(
   sections.push(createFooter(tooltipData.lastUpdated));
 
   // Join all sections with proper spacing
-  tooltip.appendMarkdown(sections.join("\n"));
+  tooltip.appendMarkdown(sections.join('\n'));
 
   return tooltip;
 }
 
 export function getStatusBarColor(percentage: number): vscode.ThemeColor {
   // Check if status bar colors are enabled in settings
-  const config = vscode.workspace.getConfiguration("cursorStats");
-  const colorsEnabled = config.get<boolean>("enableStatusBarColors", true);
+  const config = vscode.workspace.getConfiguration('cursorStats');
+  const colorsEnabled = config.get<boolean>('enableStatusBarColors', true);
 
   if (!colorsEnabled) {
-    return new vscode.ThemeColor("statusBarItem.foreground");
+    return new vscode.ThemeColor('statusBarItem.foreground');
   }
 
   if (percentage >= 95) {
-    return new vscode.ThemeColor("charts.red");
+    return new vscode.ThemeColor('charts.red');
   } else if (percentage >= 90) {
-    return new vscode.ThemeColor("errorForeground");
+    return new vscode.ThemeColor('errorForeground');
   } else if (percentage >= 85) {
-    return new vscode.ThemeColor("testing.iconFailed");
+    return new vscode.ThemeColor('testing.iconFailed');
   } else if (percentage >= 80) {
-    return new vscode.ThemeColor("notebookStatusErrorIcon.foreground");
+    return new vscode.ThemeColor('notebookStatusErrorIcon.foreground');
   } else if (percentage >= 75) {
-    return new vscode.ThemeColor("charts.yellow");
+    return new vscode.ThemeColor('charts.yellow');
   } else if (percentage >= 70) {
-    return new vscode.ThemeColor("notificationsWarningIcon.foreground");
+    return new vscode.ThemeColor('notificationsWarningIcon.foreground');
   } else if (percentage >= 65) {
-    return new vscode.ThemeColor("charts.orange");
+    return new vscode.ThemeColor('charts.orange');
   } else if (percentage >= 60) {
-    return new vscode.ThemeColor("charts.blue");
+    return new vscode.ThemeColor('charts.blue');
   } else if (percentage >= 50) {
-    return new vscode.ThemeColor("charts.green");
+    return new vscode.ThemeColor('charts.green');
   } else if (percentage >= 40) {
-    return new vscode.ThemeColor("testing.iconPassed");
+    return new vscode.ThemeColor('testing.iconPassed');
   } else if (percentage >= 30) {
-    return new vscode.ThemeColor("terminal.ansiGreen");
+    return new vscode.ThemeColor('terminal.ansiGreen');
   } else if (percentage >= 20) {
-    return new vscode.ThemeColor("symbolIcon.classForeground");
+    return new vscode.ThemeColor('symbolIcon.classForeground');
   } else if (percentage >= 10) {
-    return new vscode.ThemeColor("debugIcon.startForeground");
+    return new vscode.ThemeColor('debugIcon.startForeground');
   } else {
-    return new vscode.ThemeColor("foreground");
+    return new vscode.ThemeColor('foreground');
   }
 }

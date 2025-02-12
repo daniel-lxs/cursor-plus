@@ -15,32 +15,32 @@ const config = {
   entryNames: 'bundle', // This will make the output files bundle.js and bundle.css
   plugins: [
     sveltePlugin({
-      compilerOptions: { 
-        css: 'external' // Extract CSS to separate file
+      compilerOptions: {
+        css: 'external', // Extract CSS to separate file
       },
       preprocess: sveltePreprocess({
         typescript: {
-          tsconfigFile: './tsconfig.svelte.json'
-        }
-      })
+          tsconfigFile: './tsconfig.svelte.json',
+        },
+      }),
     }),
     alias({
-      '@/': path.resolve(__dirname, '../src')
-    })
+      '@/': path.resolve(__dirname, '../src'),
+    }),
   ],
   loader: {
-    '.json': 'json'
+    '.json': 'json',
   },
   sourcemap: isDev,
   minify: !isDev,
   format: 'iife',
   target: ['es2020', 'chrome91'],
   mainFields: ['svelte', 'browser', 'module', 'main'],
-  conditions: ['svelte', 'browser']
+  conditions: ['svelte', 'browser'],
 };
 
 if (isDev) {
-  esbuild.context(config).then(ctx => {
+  esbuild.context(config).then((ctx) => {
     ctx.watch();
     console.log('👀 Watching webview for changes...');
   });
@@ -48,4 +48,4 @@ if (isDev) {
   esbuild.build(config).then(() => {
     console.log('🎉 Webview bundle complete!');
   });
-} 
+}

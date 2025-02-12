@@ -108,21 +108,21 @@ export interface ReleaseCheckResult {
 // API Response Types
 // ======================
 export interface CursorUsageResponse {
-  "gpt-4": {
+  'gpt-4': {
     numRequests: number;
     numRequestsTotal: number;
     numTokens: number;
     maxRequestUsage: number;
     maxTokenUsage: number | null;
   };
-  "gpt-3.5-turbo": {
+  'gpt-3.5-turbo': {
     numRequests: number;
     numRequestsTotal: number;
     numTokens: number;
     maxRequestUsage: number | null;
     maxTokenUsage: number | null;
   };
-  "gpt-4-32k": {
+  'gpt-4-32k': {
     numRequests: number;
     numRequestsTotal: number;
     numTokens: number;

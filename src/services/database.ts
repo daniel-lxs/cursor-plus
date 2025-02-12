@@ -1,64 +1,64 @@
-import * as path from "path";
-import * as os from "os";
-import * as jwt from "jsonwebtoken";
-import * as vscode from "vscode";
-import * as fs from "fs";
-import initSqlJs from "sql.js";
-import { log } from "../utils/logger";
-import { execSync } from "child_process";
+import * as path from 'path';
+import * as os from 'os';
+import * as jwt from 'jsonwebtoken';
+import * as vscode from 'vscode';
+import * as fs from 'fs';
+import initSqlJs from 'sql.js';
+import { log } from '../utils/logger';
+import { execSync } from 'child_process';
 
 export function getCursorDBPath(): string {
   const appName = vscode.env.appName;
-  const folderName = appName === "Cursor Nightly" ? "Cursor Nightly" : "Cursor";
+  const folderName = appName === 'Cursor Nightly' ? 'Cursor Nightly' : 'Cursor';
 
-  if (process.platform === "win32") {
+  if (process.platform === 'win32') {
     return path.join(
-      process.env.APPDATA || "",
+      process.env.APPDATA || '',
       folderName,
-      "User",
-      "globalStorage",
-      "state.vscdb",
+      'User',
+      'globalStorage',
+      'state.vscdb'
     );
-  } else if (process.platform === "linux") {
-    const isWSL = vscode.env.remoteName === "wsl";
+  } else if (process.platform === 'linux') {
+    const isWSL = vscode.env.remoteName === 'wsl';
     if (isWSL) {
       const windowsUsername = getWindowsUsername();
       if (windowsUsername) {
         return path.join(
-          "/mnt/c/Users",
+          '/mnt/c/Users',
           windowsUsername,
-          "AppData/Roaming",
+          'AppData/Roaming',
           folderName,
-          "User/globalStorage/state.vscdb",
+          'User/globalStorage/state.vscdb'
         );
       }
     }
     return path.join(
       os.homedir(),
-      ".config",
+      '.config',
       folderName,
-      "User",
-      "globalStorage",
-      "state.vscdb",
+      'User',
+      'globalStorage',
+      'state.vscdb'
     );
-  } else if (process.platform === "darwin") {
+  } else if (process.platform === 'darwin') {
     return path.join(
       os.homedir(),
-      "Library",
-      "Application Support",
+      'Library',
+      'Application Support',
       folderName,
-      "User",
-      "globalStorage",
-      "state.vscdb",
+      'User',
+      'globalStorage',
+      'state.vscdb'
     );
   }
   return path.join(
     os.homedir(),
-    ".config",
+    '.config',
     folderName,
-    "User",
-    "globalStorage",
-    "state.vscdb",
+    'User',
+    'globalStorage',
+    'state.vscdb'
   );
 }
 
@@ -72,7 +72,7 @@ export async function getCursorTokenFromDB(): Promise<string | undefined> {
     log(`Database path exists: ${fs.existsSync(dbPath)}`);
 
     if (!fs.existsSync(dbPath)) {
-      log("Database file does not exist", true);
+      log('Database file does not exist', true);
       return undefined;
     }
 
@@ -80,15 +80,15 @@ export async function getCursorTokenFromDB(): Promise<string | undefined> {
     const SQL = await initSqlJs();
     const db = new SQL.Database(new Uint8Array(dbBuffer));
 
-    log("Successfully opened database connection");
-    log("Executing SQL query for token...");
+    log('Successfully opened database connection');
+    log('Executing SQL query for token...');
 
     const result = db.exec(
-      "SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken'",
+      "SELECT value FROM ItemTable WHERE key = 'cursorAuth/accessToken'"
     );
 
     if (!result.length || !result[0].values.length) {
-      log("No token found in database");
+      log('No token found in database');
       db.close();
       return undefined;
     }
@@ -102,46 +102,46 @@ export async function getCursorTokenFromDB(): Promise<string | undefined> {
       log(`JWT decoded successfully: ${!!decoded}`);
       log(`JWT payload exists: ${!!(decoded && decoded.payload)}`);
       log(
-        `JWT sub exists: ${!!(decoded && decoded.payload && decoded.payload.sub)}`,
+        `JWT sub exists: ${!!(decoded && decoded.payload && decoded.payload.sub)}`
       );
 
       if (!decoded || !decoded.payload || !decoded.payload.sub) {
-        log("Invalid JWT structure: " + JSON.stringify({ decoded }), true);
+        log('Invalid JWT structure: ' + JSON.stringify({ decoded }), true);
         db.close();
         return undefined;
       }
 
       const sub = decoded.payload.sub.toString();
       log(`Sub value: ${sub}`);
-      const userId = sub.split("|")[1];
+      const userId = sub.split('|')[1];
       log(`Extracted userId: ${userId}`);
       const sessionToken = `${userId}%3A%3A${token}`;
       log(`Created session token, length: ${sessionToken.length}`);
       db.close();
       return sessionToken;
     } catch (error: any) {
-      log("Error processing token: " + error, true);
+      log('Error processing token: ' + error, true);
       log(
-        "Error details: " +
+        'Error details: ' +
           JSON.stringify({
             name: error.name,
             message: error.message,
             stack: error.stack,
           }),
-        true,
+        true
       );
       db.close();
       return undefined;
     }
   } catch (error: any) {
-    log("Error opening database: " + error, true);
+    log('Error opening database: ' + error, true);
     log(
-      "Database error details: " +
+      'Database error details: ' +
         JSON.stringify({
           message: error.message,
           stack: error.stack,
         }),
-      true,
+      true
     );
     return undefined;
   }
@@ -150,12 +150,12 @@ export function getWindowsUsername(): string | undefined {
   try {
     // Executes cmd.exe and echoes the %USERNAME% variable
     const result = execSync('cmd.exe /C "echo %USERNAME%"', {
-      encoding: "utf8",
+      encoding: 'utf8',
     });
     const username = result.trim();
     return username || undefined;
   } catch (error) {
-    console.error("Error getting Windows username:", error);
+    console.error('Error getting Windows username:', error);
     return undefined;
   }
 }
