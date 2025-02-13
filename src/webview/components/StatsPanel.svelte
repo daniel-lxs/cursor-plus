@@ -1,44 +1,17 @@
 <script lang="ts">
-  import type { PremiumStats, UsageBasedStats } from '../../interfaces/types';
+  import type { StatsProps } from '../types';
   import { Settings, User, Lock, RefreshCw, Clock } from 'lucide-svelte';
   import ProgressBar from './ProgressBar.svelte';
   import { getNextResetDate } from '../../utils/dateUtils';
+  import { vscode, type ExtensionToWebviewMessage } from '../lib/vscode';
 
-  type Props = {
-    premiumStats: PremiumStats;
-    usageBasedStats: UsageBasedStats;
-  };
-
-  const props: Props = $props();
-  const stats = $state({
-    premium: props.premiumStats,
-    usage: props.usageBasedStats,
-  });
+  const { stats }: { stats: StatsProps } = $props();
 
   let isLoading = $state(true); // Add loading state
-  let isUsageBasedEnabled = $state(props.usageBasedStats.isEnabled ?? false); // Initialize with the value from props
+  let isUsageBasedEnabled = $state(stats.usage.isEnabled ?? false); // Initialize with the value from props
   let lastUpdated = $state('');
   let isToggling = $state(false);
   let percentage = $state(0);
-
-  // VSCode API access with proper typing and environment check
-  const vscode =
-    typeof acquireVsCodeApi !== 'undefined'
-      ? acquireVsCodeApi<WebviewToExtensionMessage>()
-      : undefined;
-
-  // Define types for messages SENT TO the webview
-  type ExtensionToWebviewMessage = {
-    type: 'updateStats';
-    premiumStats: PremiumStats;
-    usageBasedStats: UsageBasedStats;
-  };
-
-  // Define a general type for messages RECEIVED FROM the webview
-  type WebviewToExtensionMessage = {
-    command: string; // Keep it generic
-    [key: string]: any; // Allow any other properties
-  };
 
   $effect(() => {
     if (!vscode) return;
@@ -66,6 +39,12 @@
           updateChartData();
           isToggling = false;
           break;
+        case 'switchView':
+          if (message.view === 'stats') {
+            // Refresh stats when switching back to stats view
+            handleRefresh();
+          }
+          break;
       }
     });
   });
@@ -76,18 +55,18 @@
 
   function handleRefresh() {
     console.log('Refresh clicked');
-    vscode.postMessage({
+    vscode?.postMessage({
       command: 'refresh',
     });
   }
 
   function handleToggleUsageBased() {
     isToggling = true;
-    vscode.postMessage({ command: 'toggleUsageBasedPricing' });
+    vscode?.postMessage({ command: 'toggleUsageBasedPricing' });
   }
 
   function handleSetLimit() {
-    vscode.postMessage({ command: 'setLimit' });
+    vscode?.postMessage({ command: 'setLimit' });
   }
 </script>
 
@@ -139,15 +118,20 @@
         <div class="stat-card">
           <div class="stat-header">
             <h2>Usage-Based Pricing</h2>
-            <label class="switch">
-              <input
-                type="checkbox"
-                checked={isUsageBasedEnabled}
-                onchange={handleToggleUsageBased}
-                disabled={isToggling}
-              />
-              <span class="slider round"></span>
-            </label>
+            <div class="stat-header-actions">
+              <button class="icon-button" onclick={handleSetLimit}>
+                <Lock size={16} />
+              </button>
+              <label class="switch">
+                <input
+                  type="checkbox"
+                  checked={isUsageBasedEnabled}
+                  onchange={handleToggleUsageBased}
+                  disabled={isToggling}
+                />
+                <span class="slider round"></span>
+              </label>
+            </div>
           </div>
           {#if isUsageBasedEnabled}
             <div class="stat-row compact">
@@ -167,7 +151,7 @@
               <span>${stats.usage?.currentCost.toFixed(2) || 0}</span>
             </div>
 
-            {#if stats.usage?.midMonthPayment > 0}
+            {#if stats.usage?.midMonthPayment && stats.usage.midMonthPayment > 0}
               <div class="stat-row compact">
                 <span>Mid-Month Payment</span>
                 <span>${stats.usage.midMonthPayment.toFixed(2)}</span>
@@ -216,33 +200,6 @@
       {/if}
     {/if}
   </div>
-
-  <footer class="management-footer">
-    <div class="footer-links">
-      <a
-        href="https://www.cursor.com/settings"
-        target="_blank"
-        class="footer-link"
-      >
-        <User size={16} /> Account Settings
-      </a>
-      <button
-        class="footer-link"
-        onclick={() => vscode.postMessage({ command: 'openSettings' })}
-      >
-        <Settings size={16} /> Extension Settings
-      </button>
-      <button class="footer-link" onclick={handleSetLimit}>
-        <Lock size={16} /> Set Usage Limit
-      </button>
-      <button class="footer-link" onclick={handleRefresh}>
-        <RefreshCw size={16} /> Refresh Statistics
-      </button>
-    </div>
-    <div class="last-updated">
-      <Clock size={16} /> &nbsp; Last updated: {lastUpdated}
-    </div>
-  </footer>
 </main>
 
 <style>
@@ -252,11 +209,15 @@
     font-size: 12px;
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
+    height: 100%;
+    box-sizing: border-box;
   }
 
   .content {
     flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+    padding-bottom: 0;
   }
 
   header {
@@ -264,6 +225,10 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1rem;
+    position: sticky;
+    top: 0;
+    background: var(--vscode-editor-background);
+    z-index: 1;
   }
 
   h1 {
@@ -415,43 +380,6 @@
     opacity: 0.8;
   }
 
-  /* Add footer styles */
-  .management-footer {
-    margin-top: auto;
-    padding-top: 1rem;
-    border-top: 1px solid var(--vscode-panel-border);
-  }
-
-  .footer-links {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 0.5rem;
-  }
-
-  .footer-link {
-    background: none;
-    border: none;
-    padding: 0.25rem;
-    cursor: pointer;
-    text-align: left;
-    color: var(--vscode-textLink-foreground);
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    font-size: 0.8rem;
-  }
-
-  .footer-link:hover {
-    text-decoration: underline;
-  }
-
-  .last-updated {
-    margin-top: 0.75rem;
-    font-size: 0.7rem;
-    opacity: 0.7;
-    color: var(--vscode-descriptionForeground);
-  }
-
   /* Toggle Switch Styles */
   .switch {
     position: relative;
@@ -509,5 +437,28 @@
 
   .slider.round:before {
     border-radius: 50%;
+  }
+
+  .stat-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .icon-button {
+    background: transparent;
+    color: var(--vscode-button-foreground);
+    border: none;
+    padding: 0.25rem;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    opacity: 0.8;
+  }
+
+  .icon-button:hover {
+    opacity: 1;
+    background: var(--vscode-button-hoverBackground);
   }
 </style>
