@@ -1,15 +1,24 @@
 {
-  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "module": "CommonJS",
     "target": "ES2020",
+    "lib": ["ES2020", "DOM"],
+    "module": "CommonJS",
+    "moduleResolution": "Node",
     "outDir": "out",
     "rootDir": "src",
-    "moduleResolution": "Node",
-    "verbatimModuleSyntax": false,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "strict": true,
     "sourceMap": true,
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedParameters": true,
+    "verbatimModuleSyntax": false
   },
   "include": [
     "src/extension.ts",
@@ -18,5 +27,5 @@
     "src/utils/**/*.ts",
     "src/interfaces/**/*.ts"
   ],
-  "exclude": ["node_modules", ".vscode-test"]
+  "exclude": ["node_modules", ".vscode-test", "src/webview/**/*"]
 }

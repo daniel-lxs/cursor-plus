@@ -20,7 +20,8 @@ const config = {
       },
       preprocess: sveltePreprocess({
         typescript: {
-          tsconfigFile: './tsconfig.svelte.json',
+          tsconfigFile: './src/webview/tsconfig.json',
+          transpileOnly: true // Required for esbuild integration
         },
       }),
     }),
@@ -36,7 +37,8 @@ const config = {
   format: 'iife',
   target: ['es2020', 'chrome91'],
   mainFields: ['svelte', 'browser', 'module', 'main'],
-  conditions: ['svelte', 'browser'],
+  conditions: ['svelte', 'browser', 'import'],
+  resolveExtensions: ['.svelte', '.ts', '.js', '.json']
 };
 
 if (isDev) {
