@@ -44,7 +44,8 @@
         {
           "type": "webview",
           "id": "cursor-plus.statsView",
-          "name": "Cursor Plus"
+          "name": "Cursor Plus",
+          "contextualTitle": "Cursor Plus"
         }
       ]
     },
@@ -55,30 +56,54 @@
       },
       {
         "command": "cursor-plus.showStats",
-        "title": "Cursor Plus: Show Statistics Panel",
+        "title": "Show Statistics Panel",
         "icon": "$(graph)"
       },
       {
         "command": "cursor-plus.refreshStats",
-        "title": "Cursor Plus: Refresh Statistics",
+        "title": "Refresh Statistics",
         "icon": "$(sync)"
       },
       {
         "command": "cursor-plus.setLimit",
-        "title": "Cursor Plus: Set Usage Limit",
-        "icon": "$(dollar)"
+        "title": "Set Usage Limit",
+        "icon": "$(credit-card)"
       },
       {
         "command": "cursor-plus.toggleUsageBasedPricing",
-        "title": "Cursor Plus: Toggle Usage-Based Pricing",
+        "title": "Toggle Usage-Based Pricing",
         "icon": "$(toggle)"
       },
       {
         "command": "cursor-plus.openSettings",
-        "title": "Cursor Plus: Open Settings",
+        "title": "Open Settings",
         "icon": "$(gear)"
+      },
+      {
+        "command": "cursor-plus.showMCPServers",
+        "title": "Show MCP Servers",
+        "icon": "$(server)"
       }
     ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "cursor-plus.showStats",
+          "when": "view == cursor-plus.statsView",
+          "group": "navigation@1"
+        },
+        {
+          "command": "cursor-plus.showMCPServers",
+          "when": "view == cursor-plus.statsView",
+          "group": "navigation@4"
+        },
+        {
+          "command": "cursor-plus.openSettings",
+          "when": "view == cursor-plus.statsView",
+          "group": "2_settings@1"
+        }
+      ]
+    },
     "configuration": [
       {
         "title": "Cursor Plus",
@@ -138,9 +163,9 @@
   },
   "scripts": {
     "clean": "rm -rf out/",
-    "dev": "npm-run-all --parallel dev:*",
-    "dev:extension": "NODE_ENV=development node build/extension.config.js",
-    "dev:webview": "NODE_ENV=development node build/webview.config.js",
+    "watch": "npm-run-all --parallel dev:*",
+    "dev:extension": "NODE_ENV=development node --inspect build/extension.config.js",
+    "dev:webview": "NODE_ENV=development node --inspect build/webview.config.js",
     "build": "npm run clean && NODE_ENV=production npm-run-all -s build:*",
     "build:extension": "node build/extension.config.js",
     "build:webview": "node build/webview.config.js",
@@ -151,11 +176,6 @@
     "format": "prettier --write ."
   },
   "devDependencies": {
-    "@rollup/plugin-alias": "^5.1.1",
-    "@rollup/plugin-commonjs": "^25.0.7",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^15.2.3",
-    "@rollup/plugin-typescript": "^11.1.6",
     "@tsconfig/svelte": "^5.0.0",
     "@types/jsonwebtoken": "^9.0.8",
     "@types/mocha": "^10.0.6",
@@ -173,9 +193,6 @@
     "eslint": "^8.56.0",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.3.3",
-    "rollup": "^4.12.0",
-    "rollup-plugin-css-only": "^4.5.2",
-    "rollup-plugin-svelte": "^7.1.6",
     "svelte": "^5.19.9",
     "svelte-check": "^3.0.0",
     "svelte-preprocess": "^5.1.3",
