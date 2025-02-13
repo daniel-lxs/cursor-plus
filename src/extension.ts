@@ -8,7 +8,7 @@ import {
   gatherTooltipData,
 } from './handlers/statusBar';
 import { initializeLogging, log } from './utils/logger';
-import { getCursorTokenFromDB } from './services/database';
+import { getCursorTokenFromDB, getMCPServers } from './services/database';
 import {
   checkUsageBasedStatus,
   getCurrentUsageLimit,
@@ -130,6 +130,7 @@ class StatsViewProvider implements vscode.WebviewViewProvider {
     webviewView.onDidChangeVisibility(() => {
       if (webviewView.visible && !token.isCancellationRequested) {
         updateStats();
+        this.updateMCPServers();
       }
     });
 
@@ -141,6 +142,7 @@ class StatsViewProvider implements vscode.WebviewViewProvider {
       switch (message.command) {
         case 'refresh':
           updateStats();
+          this.updateMCPServers();
           break;
         case 'toggleUsageBasedPricing':
           vscode.commands.executeCommand('cursor-plus.toggleUsageBasedPricing');
@@ -152,6 +154,16 @@ class StatsViewProvider implements vscode.WebviewViewProvider {
           log('[Webview] Received openSettings command');
           vscode.commands.executeCommand('cursor-plus.openSettings');
           break;
+        case 'switchView':
+          log(`[Webview] Switching to view: ${message.view}`);
+          if (message.view === 'mcpServers') {
+            this.updateMCPServers();
+          }
+          this._view?.webview.postMessage({
+            type: 'switchView',
+            view: message.view,
+          });
+          break;
       }
     });
 
@@ -160,6 +172,22 @@ class StatsViewProvider implements vscode.WebviewViewProvider {
     // Initial update if not cancelled
     if (!token.isCancellationRequested) {
       updateStats();
+      this.updateMCPServers();
+    }
+  }
+
+  private async updateMCPServers() {
+    try {
+      const servers = await getMCPServers();
+      if (this._view) {
+        log('[Webview] Sending MCP servers update');
+        this._view.webview.postMessage({
+          type: 'updateMCPServers',
+          servers: servers || [],
+        });
+      }
+    } catch (error: any) {
+      log(`[Critical] Error fetching MCP servers: ${error.message}`, true);
     }
   }
 
@@ -231,10 +259,26 @@ export async function activate(context: vscode.ExtensionContext) {
       statsViewProvider
     );
 
+    // Register command to show MCP servers
+    const showMCPServersCommand = vscode.commands.registerCommand(
+      'cursor-plus.showMCPServers',
+      () => {
+        log('[Command] Switching to MCP Servers view');
+        statsViewProvider.postMessage({
+          type: 'switchView',
+          view: 'mcpServers'
+        });
+      }
+    );
+
     // Register command to show stats panel (now focuses the view)
     const showStatsCommand = vscode.commands.registerCommand(
       'cursor-plus.showStats',
       () => {
+        statsViewProvider.postMessage({
+          type: 'switchView',
+          view: 'stats'
+        });
         vscode.commands.executeCommand('cursor-plus.statsView.focus');
       }
     );
@@ -511,7 +555,8 @@ export async function activate(context: vscode.ExtensionContext) {
       toggleUsageBasedPricingCommand,
       viewRegistration,
       focusListener,
-      openSettingsCommand
+      openSettingsCommand,
+      showMCPServersCommand
     );
 
     // Show status bar item explicitly

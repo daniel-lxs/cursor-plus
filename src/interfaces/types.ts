@@ -162,3 +162,18 @@ export interface CursorTooltipData {
   error?: TooltipError;
   lastUpdated: string;
 }
+
+// ======================
+// MCP Server Types
+// ======================
+export interface MCPServer {
+  identifier: string;
+  name: string;
+  command: string;
+  type: string;
+}
+
+export interface ApplicationUserData {
+  mcpServers: MCPServer[];
+  // We could add other fields here, but for now we only need mcpServers
+}

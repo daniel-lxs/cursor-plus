@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import initSqlJs from 'sql.js';
 import { log } from '../utils/logger';
 import { execSync } from 'child_process';
+import { MCPServer, ApplicationUserData } from '../interfaces/types';
 
 export function getCursorDBPath(): string {
   const appName = vscode.env.appName;
@@ -146,6 +147,7 @@ export async function getCursorTokenFromDB(): Promise<string | undefined> {
     return undefined;
   }
 }
+
 export function getWindowsUsername(): string | undefined {
   try {
     // Executes cmd.exe and echoes the %USERNAME% variable
@@ -159,3 +161,50 @@ export function getWindowsUsername(): string | undefined {
     return undefined;
   }
 }
+
+export async function getMCPServers(): Promise<MCPServer[] | undefined> {
+  try {
+    const dbPath = getCursorDBPath();
+    
+    if (!fs.existsSync(dbPath)) {
+      log('[MCP] Database file does not exist', true);
+      return undefined;
+    }
+
+    const dbBuffer = fs.readFileSync(dbPath);
+    const SQL = await initSqlJs();
+    const db = new SQL.Database(new Uint8Array(dbBuffer));
+
+    const result = db.exec(
+      "SELECT value FROM ItemTable WHERE key = 'src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser'"
+    );
+
+    if (!result.length || !result[0].values.length) {
+      log('[MCP] No application user data found in database');
+      db.close();
+      return undefined;
+    }
+
+    const rawValue = result[0].values[0][0] as string;
+    
+    try {
+      const userData: ApplicationUserData = JSON.parse(rawValue);
+      const mcpServers = userData.mcpServers || [];
+      
+      log(`Found ${mcpServers.length} MCP servers`);
+      log(JSON.stringify(mcpServers));
+      
+      db.close();
+      return mcpServers;
+    } catch (error: any) {
+      log('[MCP] Error parsing application user data: ' + error.message, true);
+      db.close();
+      return undefined;
+    }
+  } catch (error: any) {
+    log('[MCP] Error accessing database: ' + error.message, true);
+    return undefined;
+  }
+}
+
+

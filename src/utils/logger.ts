@@ -25,6 +25,7 @@ export function log(message: string, error: boolean = false): void {
         message.includes('[Database]') ||
         message.includes('[Auth]') ||
         message.includes('[Stats]') ||
+        message.includes('[MCP]') ||
         message.includes('[API]') ||
         message.includes('[GitHub]') ||
         message.includes('[Panels]') ||
